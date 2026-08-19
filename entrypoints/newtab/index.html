@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TrendABC</title>
+<link rel="stylesheet" href="/fonts.css">
+
+<style>
+:root{
+  --bg:#E6E8E3; --surface:#F7F8F4; --surface-2:#EDEFE8; --surface-3:#E1E4DC;
+  --ink:#14181B; --muted:#5C646B; --faint:#8A9299;
+  --line:#CFD4CC; --line-strong:#B0B8AE;
+  --signal:#0E6F63; --signal-ink:#0A5B51; --signal-wash:rgba(14,111,99,.10);
+  --heat:#9A5B08; --danger:#A02C1E;
+  --shadow-panel:-18px 0 48px rgba(20,24,27,.10);
+  --shadow-pop:0 2px 4px rgba(20,24,27,.05),0 16px 40px rgba(20,24,27,.14);
+  --r:3px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1215; --surface:#161B1F; --surface-2:#1B2126; --surface-3:#222A2F;
+    --ink:#E3E7E3; --muted:#929B9C; --faint:#6B7578;
+    --line:#252C31; --line-strong:#3A444A;
+    --signal:#3FBFA9; --signal-ink:#7FDCC9; --signal-wash:rgba(63,191,169,.12);
+    --heat:#D69436; --danger:#E0705C;
+    --shadow-panel:-18px 0 48px rgba(0,0,0,.45);
+    --shadow-pop:0 2px 4px rgba(0,0,0,.3),0 16px 40px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1215; --surface:#161B1F; --surface-2:#1B2126; --surface-3:#222A2F;
+  --ink:#E3E7E3; --muted:#929B9C; --faint:#6B7578;
+  --line:#252C31; --line-strong:#3A444A;
+  --signal:#3FBFA9; --signal-ink:#7FDCC9; --signal-wash:rgba(63,191,169,.12);
+  --heat:#D69436; --danger:#E0705C;
+  --shadow-panel:-18px 0 48px rgba(0,0,0,.45);
+  --shadow-pop:0 2px 4px rgba(0,0,0,.3),0 16px 40px rgba(0,0,0,.5);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none;padding:0}
+a{color:var(--signal-ink)}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:2px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.lab{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:600;color:var(--faint);
+  font-family:"IBM Plex Mono",ui-monospace,monospace}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:40;background:var(--bg);
+  border-bottom:1px solid var(--line);
+}
+.hbar{max-width:1000px;margin:0 auto;padding:0 22px;height:54px;display:flex;align-items:center;gap:18px}
+.mark{display:flex;align-items:baseline;gap:8px;font-weight:700;letter-spacing:-.015em;font-size:15px}
+.mark .dot{width:7px;height:7px;border-radius:50%;background:var(--signal);
+  box-shadow:0 0 0 3px var(--signal-wash);align-self:center}
+.mark small{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--faint);letter-spacing:.06em;font-weight:500}
+.views{display:flex;gap:2px;margin-left:6px}
+.views button{padding:5px 11px;font-size:12.5px;font-weight:500;color:var(--muted);border-radius:var(--r)}
+.views button[aria-selected="true"]{background:var(--surface-3);color:var(--ink);font-weight:600}
+.views button:hover{color:var(--ink)}
+.hspace{flex:1}
+.hstat{display:flex;align-items:center;gap:14px}
+.spend{font-size:11px;color:var(--muted)}
+.spend b{color:var(--ink);font-weight:600}
+.iconbtn{width:30px;height:30px;display:grid;place-items:center;border-radius:var(--r);color:var(--muted)}
+.iconbtn:hover{background:var(--surface-3);color:var(--ink)}
+.iconbtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.syncing .spin{animation:spin 1s linear infinite;transform-origin:50% 50%}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- topic strip ---------- */
+.topics{border-bottom:1px solid var(--line);background:var(--surface)}
+.tinner{max-width:1000px;margin:0 auto;padding:9px 22px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.chip{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;padding:3px 9px;border-radius:100px;
+  border:1px solid var(--line-strong);color:var(--muted);background:transparent;transition:.12s;
+}
+.chip:hover{border-color:var(--signal);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--signal);border-color:var(--signal);color:#fff;font-weight:500}
+:root[data-theme="dark"] .chip[aria-pressed="true"]{color:#0B1113}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#0B1113}}
+.chip.add{border-style:dashed;color:var(--faint)}
+
+
+/* ---------- boards (raw source columns) ---------- */
+body.wide .hbar,body.wide main{max-width:1560px}
+.boards{display:grid;gap:14px;padding:16px 0 0;align-items:start;overflow-x:auto;scrollbar-width:thin}
+.bhead .btns{margin-left:auto;display:flex;align-items:center;gap:2px}
+.bhead .mini{width:22px;height:22px;display:grid;place-items:center;border-radius:2px;color:var(--faint)}
+.bhead .mini:hover{background:var(--surface-3);color:var(--ink)}
+.bhead .mini svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round}
+.bhead .mini.x:hover{color:var(--danger)}
+.bstale{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--faint);white-space:nowrap}
+.board.loading .bscroll{opacity:.35;pointer-events:none;transition:opacity .15s}
+.addwrap{position:relative}
+.addmenu{position:absolute;left:0;top:28px;z-index:30;background:var(--surface);
+  border:1px solid var(--line-strong);border-radius:4px;box-shadow:var(--shadow-pop);
+  min-width:230px;padding:5px;display:none}
+.addmenu.on{display:block}
+.addmenu button{display:block;width:100%;text-align:left;padding:7px 9px;border-radius:2px;font-size:13px}
+.addmenu button:hover{background:var(--surface-2)}
+.addmenu button span{display:block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--faint)}
+.addmenu .none{padding:9px;font-size:12px;color:var(--faint)}
+.boardbtn{font-size:12px;padding:3px 9px;border:1px dashed var(--line-strong);border-radius:100px;
+  color:var(--muted)}
+.boardbtn:hover{border-color:var(--signal);color:var(--ink);border-style:solid}
+.board{background:var(--surface);border:1px solid var(--line);border-radius:4px;
+  display:flex;flex-direction:column;max-height:calc(100vh - 110px);min-width:0;
+  container-type:inline-size}
+.board.locked{border-style:dashed}
+.lockedstate{padding:34px 20px;text-align:center;color:var(--muted)}
+.lockedstate h4{margin:0 0 7px;color:var(--ink);font-size:14px}
+.lockedstate p{margin:0 auto 13px;max-width:34ch;font-size:12.5px;line-height:1.5}
+.bhead{display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid var(--line);
+  background:var(--surface-2);border-radius:4px 4px 0 0}
+.bmark{width:19px;height:19px;border-radius:3px;display:grid;place-items:center;flex:none;
+  font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;color:#fff}
+.bhead h3{margin:0;font-size:13px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* The board's name matters more than the width of its dropdowns. */
+.bhead select{min-width:0;max-width:96px;text-overflow:ellipsis}
+.bhead h3{flex:1 1 auto}
+.btns{flex:0 0 auto}
+/* Narrow columns drop the age label before they drop the controls. */
+@container (max-width: 400px){ .bstale{display:none} }
+@container (max-width: 330px){ .bhead select:nth-of-type(2){display:none} }
+.bhead .sel{margin-left:auto;display:flex;gap:4px}
+.bhead select{background:var(--bg);border:1px solid var(--line);border-radius:2px;padding:2px 4px;
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--muted)}
+.bscroll{overflow-y:auto;overscroll-behavior:contain}
+.brow{padding:11px 13px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .1s;
+  position:relative}
+.brow:last-child{border-bottom:none}
+.brow:hover{background:var(--surface-2)}
+/* Click opens the panel; this is the escape hatch straight to the source. */
+.golink{position:absolute;top:7px;right:8px;width:24px;height:24px;border-radius:4px;display:grid;
+  place-items:center;opacity:0;transition:opacity .12s,background .12s;background:var(--surface-3);
+  color:var(--muted);text-decoration:none}
+.golink svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round}
+.brow:hover .golink,.brow:focus-within .golink,.golink:focus-visible{opacity:1}
+.golink:hover{background:var(--signal);color:var(--surface)}
+.row{position:relative}
+.row:hover .golink,.row:focus-within .golink{opacity:1}
+.row .golink{top:14px;right:2px}
+.brow .rt{font-size:14.5px;line-height:1.35;margin:0 0 3px;font-weight:500;letter-spacing:-.005em}
+.brow .rt .own{color:var(--muted);font-weight:400}
+.brow .rt .dom{color:var(--faint);font-size:11.5px;font-weight:400;
+  font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+.brow .rd{margin:0 0 6px;font-size:12.5px;color:var(--muted);line-height:1.45}
+.brow .rm{display:flex;align-items:center;gap:11px;font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.brow .rm .today{margin-left:auto;color:var(--heat);font-weight:500;white-space:nowrap}
+.brow .lang{display:inline-flex;align-items:center;gap:5px}
+.brow .lang i{width:7px;height:7px;border-radius:50%;background:var(--line-strong)}
+.brow .sumdot{color:var(--signal-ink)}
+.clock{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.clock b{color:var(--ink);font-weight:600}
+
+/* ---------- feed ---------- */
+main{max-width:1000px;margin:0 auto;padding:0 22px 120px}
+.stripline{display:flex;align-items:baseline;gap:10px;padding:20px 0 10px}
+.stripline h2{margin:0;font-size:12px;letter-spacing:.11em;text-transform:uppercase;font-weight:600;
+  font-family:"IBM Plex Mono",monospace;color:var(--faint)}
+.stripline .rule{flex:1;height:1px;background:var(--line)}
+.stripline .count{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint)}
+
+.row{
+  display:grid;grid-template-columns:52px 1fr auto;gap:16px;align-items:start;
+  padding:15px 10px 15px 8px;border-bottom:1px solid var(--line);
+  cursor:pointer;margin:0 -10px;border-radius:var(--r);transition:background .1s;
+  animation:rise .34s cubic-bezier(.2,.7,.3,1) backwards;
+}
+@keyframes rise{from{opacity:0;transform:translateY(7px)}}
+.row:hover{background:var(--surface)}
+.row.is-open{background:var(--surface);box-shadow:inset 2px 0 0 var(--signal)}
+.row.is-fresh{animation:flash 1.6s ease-out}
+@keyframes flash{0%{background:var(--signal-wash)}100%{background:transparent}}
+
+.sig{text-align:right;padding-top:1px}
+.sig .n{font-family:"IBM Plex Mono",monospace;font-size:19px;font-weight:500;line-height:1;
+  font-variant-numeric:tabular-nums;color:var(--muted)}
+.sig.hot .n{color:var(--heat);font-weight:600}
+.sig .dots{display:flex;gap:2.5px;justify-content:flex-end;margin-top:6px}
+.sig .dots i{width:4px;height:4px;border-radius:50%;background:var(--line-strong)}
+.sig .dots i.on{background:var(--signal)}
+
+.row h3{
+  margin:0 0 4px;font-family:"Newsreader",Georgia,serif;font-size:19px;line-height:1.28;
+  font-weight:500;letter-spacing:-.005em;text-wrap:balance;
+}
+.row .blurb{margin:0 0 9px;font-size:13.5px;color:var(--muted);line-height:1.5;max-width:62ch}
+.tags{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.src{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;letter-spacing:.03em;
+  padding:2px 6px;border:1px solid var(--line-strong);border-radius:2px;color:var(--muted);
+  display:inline-flex;gap:5px;white-space:nowrap;
+}
+.src b{font-weight:600;color:var(--ink)}
+.src.corr{border-color:var(--signal);color:var(--signal-ink)}
+.rowmeta{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px;padding-top:3px}
+.age{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);white-space:nowrap}
+.savedmark{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--signal-ink);
+  border:1px solid var(--signal);border-radius:2px;padding:1px 5px;letter-spacing:.04em}
+.empty{padding:60px 0;text-align:center;color:var(--faint);font-size:14px}
+
+/* ---------- archive ---------- */
+.searchwrap{position:relative;margin:4px 0 6px}
+.searchwrap input{
+  width:100%;padding:11px 14px 11px 36px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);font-size:14px;
+}
+.searchwrap svg{position:absolute;left:12px;top:12px;width:15px;height:15px;stroke:var(--faint);
+  fill:none;stroke-width:1.7}
+.arc{padding:14px 10px;margin:0 -10px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:var(--r)}
+.arc:hover{background:var(--surface)}
+.arc h3{margin:0 0 3px;font-family:"Newsreader",serif;font-size:17px;font-weight:500}
+.arc p{margin:0;font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden;line-height:1.45}
+.arc .when{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--faint);margin-bottom:5px}
+
+/* ---------- side panel ---------- */
+.scrim{position:fixed;inset:0;background:rgba(10,14,16,.34);opacity:0;pointer-events:none;
+  transition:opacity .22s;z-index:50}
+.scrim.on{opacity:1;pointer-events:auto}
+.panel{
+  position:fixed;top:0;right:0;bottom:0;width:min(468px,100%);background:var(--surface);
+  border-left:1px solid var(--line);box-shadow:var(--shadow-panel);z-index:60;
+  transform:translateX(101%);transition:transform .26s cubic-bezier(.3,.8,.3,1);
+  display:flex;flex-direction:column;
+}
+.panel.on{transform:none}
+.phead{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.phead .lab{margin-bottom:5px}
+.phead h2{margin:0;font-family:"Newsreader",serif;font-size:21px;font-weight:500;line-height:1.25;text-wrap:balance}
+.phead .dom{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);margin-top:6px}
+.pbody{flex:1;overflow-y:auto;padding:16px 18px 22px}
+.pacts{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+.btn{
+  padding:7px 13px;border-radius:var(--r);border:1px solid var(--line-strong);font-size:12.5px;
+  font-weight:500;color:var(--ink);background:var(--surface-2);transition:.12s;display:inline-flex;
+  align-items:center;gap:6px;
+}
+.btn:hover{border-color:var(--line-strong);background:var(--surface-3)}
+.btn.pri{background:var(--signal);border-color:var(--signal);color:#fff;font-weight:600}
+:root[data-theme="dark"] .btn.pri{color:#08110F}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.pri{color:#08110F}}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn .kbd{font-family:"IBM Plex Mono",monospace;font-size:10px;opacity:.65}
+
+.notice{
+  border:1px solid var(--line-strong);border-left:3px solid var(--heat);background:var(--surface-2);
+  padding:13px 15px;border-radius:var(--r);margin-bottom:16px;
+}
+.notice h4{margin:0 0 5px;font-size:13px;font-weight:600}
+.notice p{margin:0 0 10px;font-size:12.5px;color:var(--muted);line-height:1.5}
+
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
+.metrics div{background:var(--surface-2);padding:9px 11px}
+.metrics .v{font-family:"IBM Plex Mono",monospace;font-size:16px;font-weight:500;
+  font-variant-numeric:tabular-nums;margin-top:2px}
+
+.sum{font-family:"Newsreader",Georgia,serif;font-size:15.5px;line-height:1.62;color:var(--ink)}
+.sum p{margin:0 0 12px}
+.sum strong{font-family:"Archivo",sans-serif;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  font-weight:700;color:var(--signal-ink);display:block;margin-bottom:3px}
+.sum ul{margin:0 0 12px;padding-left:18px}
+.sum li{margin-bottom:5px}
+.sum a{font-family:"IBM Plex Mono",monospace;font-size:12.5px;word-break:break-all}
+.cursor{display:inline-block;width:7px;height:15px;background:var(--signal);vertical-align:-2px;
+  animation:blink .9s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.streamnote{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--faint);
+  display:flex;gap:8px;align-items:center;margin-bottom:10px}
+
+.links{border-top:1px solid var(--line);margin-top:18px;padding-top:14px}
+.links ol{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+.links li{display:grid;grid-template-columns:auto 1fr;gap:9px;font-size:13px;align-items:baseline}
+.links .k{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--faint);
+  border:1px solid var(--line);border-radius:2px;padding:1px 4px}
+.links a{text-decoration:none;border-bottom:1px solid var(--line-strong)}
+.links a:hover{border-color:var(--signal)}
+.links .why{display:block;color:var(--muted);font-size:12px;margin-top:1px}
+
+.thread{display:flex;flex-direction:column;gap:20px;margin-top:4px}
+.msg{font-size:14px;line-height:1.62}
+.msg.u{background:var(--surface-3);border-radius:14px 14px 4px 14px;padding:9px 13px;
+  align-self:flex-end;max-width:85%;font-size:13.5px}
+.msg.a{font-family:"Newsreader",Georgia,serif;font-size:15.5px;line-height:1.66;color:var(--ink)}
+.msg.a p{margin:0 0 11px}
+.msg.a p:last-child{margin-bottom:0}
+.msg.a strong{font-family:"Archivo",sans-serif;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  font-weight:700;color:var(--signal-ink);display:block;margin-bottom:3px}
+.msg.err{color:var(--danger);font-size:13px}
+.thinking{display:flex;gap:4px;align-items:center;height:18px}
+.thinking i{width:5px;height:5px;border-radius:50%;background:var(--faint);animation:bob 1.1s infinite}
+.thinking i:nth-child(2){animation-delay:.15s}
+.thinking i:nth-child(3){animation-delay:.3s}
+@keyframes bob{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+.chatzero{padding:26px 2px 8px;color:var(--muted);font-size:13.5px;line-height:1.6}
+.chatzero h4{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--ink)}
+.suggest{display:flex;flex-direction:column;gap:6px;margin-top:14px;align-items:flex-start}
+.suggest button{font-size:13px;padding:7px 12px;border:1px solid var(--line);border-radius:100px;
+  color:var(--muted);background:var(--surface-2);transition:.12s;text-align:left}
+.suggest button:hover{color:var(--ink);border-color:var(--line-strong);background:var(--surface-3)}
+
+.composer{border-top:1px solid var(--line);padding:12px 14px 14px;background:var(--surface)}
+.cbox{display:flex;align-items:flex-end;gap:8px;background:var(--surface-2);
+  border:1px solid var(--line-strong);border-radius:16px;padding:7px 7px 7px 14px;transition:border-color .12s}
+.cbox:focus-within{border-color:var(--signal)}
+.composer textarea{flex:1;background:none;border:none;resize:none;outline:none;padding:6px 0;
+  font-size:14px;line-height:1.5;max-height:150px;font-family:inherit;color:var(--ink)}
+.composer textarea::placeholder{color:var(--faint)}
+.csend{width:32px;height:32px;flex:none;border-radius:50%;background:var(--signal);display:grid;
+  place-items:center;transition:.12s}
+.csend svg{width:15px;height:15px;stroke:var(--surface);fill:none;stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round}
+.csend:disabled{opacity:.3}
+.csend:not(:disabled):hover{filter:brightness(1.08)}
+.chint{font-size:10.5px;color:var(--faint);margin:7px 2px 0;font-family:"IBM Plex Mono",monospace}
+
+/* One quiet line beats three boxes of numbers nobody asked for. */
+.panelmeta{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);
+  display:flex;flex-wrap:wrap;gap:9px;margin:0 0 18px;padding-bottom:14px;
+  border-bottom:1px solid var(--line)}
+
+/* ---------- modal ---------- */
+.modal{
+  position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:20px;
+  background:rgba(10,14,16,.42);opacity:0;pointer-events:none;transition:opacity .18s;
+}
+.modal.on{opacity:1;pointer-events:auto}
+.sheet{
+  width:min(560px,100%);max-height:88vh;overflow-y:auto;background:var(--surface);
+  border:1px solid var(--line);border-radius:5px;box-shadow:var(--shadow-pop);
+  transform:translateY(8px) scale(.99);transition:transform .18s;
+}
+.modal.on .sheet{transform:none}
+.shead{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center}
+.shead h2{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+.sect{padding:18px 20px;border-bottom:1px solid var(--line)}
+.sect:last-of-type{border-bottom:none}
+.sect > .lab{display:block;margin-bottom:9px}
+.field{display:flex;gap:8px}
+.field input,.sect textarea,.sect select{
+  width:100%;background:var(--bg);border:1px solid var(--line-strong);border-radius:var(--r);
+  padding:9px 11px;font-size:13px;font-family:"IBM Plex Mono",monospace;
+}
+.sect textarea{resize:vertical;min-height:66px;line-height:1.55}
+.help{font-size:12px;color:var(--muted);margin:9px 0 0;line-height:1.5}
+.help.warn{color:var(--heat)}
+.keyset{display:flex;align-items:center;gap:10px;font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+.keyset .ok{color:var(--signal-ink);font-weight:600}
+.providers{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+.provider{position:relative;border:1px solid var(--line-strong);border-radius:var(--r);padding:9px 10px;
+  background:var(--surface-2);font-size:12.5px;font-weight:600;text-align:left;transition:.12s}
+.provider:hover{border-color:var(--signal)}
+.provider[aria-pressed="true"]{border-color:var(--signal);background:var(--signal-wash)}
+.provider::after{content:"";position:absolute;right:8px;top:8px;width:6px;height:6px;border-radius:50%;
+  background:var(--line-strong)}
+.provider.has-key::after{background:var(--signal)}
+.modelpick{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:9px;align-items:center}
+.modelpick select{min-width:0}
+.modelcost{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--signal-ink);
+  white-space:nowrap;font-weight:600}
+.modelhint{font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.5}
+.toggles{display:flex;flex-direction:column;gap:2px}
+.tg{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px}
+.tg input{accent-color:var(--signal);width:15px;height:15px}
+.tg .cnt{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint)}
+.sfoot{padding:14px 20px;display:flex;gap:8px;justify-content:flex-end;align-items:center;
+  position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line)}
+
+
+.acct{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--line)}
+.acct:last-of-type{border-bottom:none}
+.acct .nm{font-size:13px;font-weight:600}
+.acct .st{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);margin-top:2px}
+.acct .st.on{color:var(--signal-ink)}
+.acct .grow{flex:1;min-width:0}
+.subchip{font-family:"IBM Plex Mono",monospace;font-size:11.5px;padding:3px 7px 3px 9px;
+  border-radius:100px;border:1px solid var(--line-strong);color:var(--muted);
+  display:inline-flex;align-items:center;gap:6px}
+.subchip button{color:var(--faint);font-size:13px;line-height:1}
+.subchip button:hover{color:var(--danger)}
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);z-index:90;
+  background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:100px;font-size:13px;
+  font-weight:500;opacity:0;transition:.2s;pointer-events:none;box-shadow:var(--shadow-pop);
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+
+@media (max-width:760px){
+  .row{grid-template-columns:40px 1fr;gap:12px}
+  .rowmeta{grid-column:2;flex-direction:row;align-items:center;justify-content:flex-start}
+  .metrics{grid-template-columns:1fr 1fr}
+  .providers{grid-template-columns:1fr}
+  .modelpick{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+</style>
+
+<header>
+  <div class="hbar">
+    <div class="mark"><span class="dot"></span>TrendABC <small>v0.1</small></div>
+    <div class="views" role="tablist">
+      <button role="tab" aria-selected="true" data-view="boards">Boards</button>
+      <button role="tab" aria-selected="false" data-view="feed">Signal</button>
+      <button role="tab" aria-selected="false" data-view="archive">Archive <span class="mono" id="arcCount">0</span></button>
+    </div>
+    <div class="addwrap" id="addWrap">
+      <button class="boardbtn" id="addBoardBtn">+ board</button>
+      <div class="addmenu" id="addMenu"></div>
+    </div>
+    <div class="hspace"></div>
+    <div class="hstat">
+      <span class="clock" id="clock"></span>
+      <span class="spend">today <b id="spend">$0.00</b></span>
+      <span class="mono" id="syncAge" style="font-size:11px;color:var(--faint)">synced 4m ago</span>
+      <button class="iconbtn" id="btnSync" title="Refresh sources">
+        <svg viewBox="0 0 24 24" class="spin"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+      </button>
+      <button class="iconbtn" id="btnTheme" title="Toggle theme">
+        <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <button class="iconbtn" id="btnSettings" title="Settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="topics"><div class="tinner" id="topicStrip"></div></div>
+</header>
+
+<main>
+  <section id="viewBoards">
+    <div class="boards" id="boards"></div>
+  </section>
+
+  <section id="viewFeed" hidden>
+    <div class="stripline">
+      <h2>Ranked stream</h2><span class="rule"></span>
+      <span class="count" id="feedCount"></span>
+    </div>
+    <div id="feed"></div>
+  </section>
+
+  <section id="viewArchive" hidden>
+    <div class="stripline"><h2>Archive</h2><span class="rule"></span>
+      <span class="count" id="arcNote">summaries cached locally &middot; free to reopen</span></div>
+    <div class="searchwrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="arcSearch" placeholder="Search titles, summaries, tags…" autocomplete="off">
+    </div>
+    <div id="archive"></div>
+  </section>
+</main>
+
+
+<div class="scrim" id="scrim"></div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="phead">
+    <div style="flex:1;min-width:0">
+      <div class="lab" id="pSources">—</div>
+      <h2 id="pTitle">—</h2>
+      <div class="dom" id="pDom">—</div>
+    </div>
+    <button class="iconbtn" id="pClose" title="Close (Esc)">
+      <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="pbody" id="pBody"></div>
+  <form class="composer" id="composer">
+    <div class="cbox">
+      <textarea id="ask" rows="1" placeholder="Ask anything about this…" autocomplete="off"></textarea>
+      <button class="csend" id="send" type="submit" aria-label="Send" disabled>
+        <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
+    </div>
+    <p class="chint" id="chint"></p>
+  </form>
+</aside>
+
+<div class="modal" id="modal">
+  <div class="sheet" role="dialog" aria-label="Settings">
+    <div class="shead"><h2>Settings</h2><div style="flex:1"></div>
+      <button class="iconbtn" id="mClose"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+
+    <div class="sect">
+      <span class="lab">AI provider</span>
+      <div class="providers" id="providerTabs"></div>
+      <div id="keyRow"></div>
+      <p class="help" id="providerHelp"></p>
+    </div>
+
+    <div class="sect">
+      <span class="lab">Summary &amp; chat model</span>
+      <div class="modelpick">
+        <select id="modelSelect" aria-label="AI model"></select>
+        <span class="modelcost" id="modelEstimate"></span>
+        <button class="iconbtn" id="modelRefresh" title="Reload the model list from the provider">
+          <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+        </button>
+      </div>
+      <p class="modelhint" id="modelHint"></p>
+      <p class="help">Lightweight models are recommended for summarisation. Advanced models remain available,
+        but usually cost more without improving extraction enough to matter.</p>
+    </div>
+
+    <div class="sect">
+      <span class="lab">Topics tracked</span>
+      <div class="field"><input id="topicInput" placeholder="add a topic, press Enter" autocomplete="off"></div>
+      <p class="help">Filters the Signal stream. Boards stay unfiltered — that is the point of them.</p>
+    </div>
+
+    <div class="sect">
+      <span class="lab">Sources</span>
+      <div class="toggles" id="srcToggles"></div>
+    </div>
+
+    <div class="sect">
+      <span class="lab">RSS feeds</span>
+      <textarea id="feeds">https://simonwillison.net/atom/everything/
+http://export.arxiv.org/rss/cs.AI
+https://huggingface.co/blog/feed.xml
+https://www.anthropic.com/news/rss.xml</textarea>
+      <p class="help">One URL per line. Blogs, arXiv categories, changelogs — anything with a feed.</p>
+    </div>
+
+    <div class="sect">
+      <span class="lab">Subreddits</span>
+      <div id="subChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px"></div>
+      <div class="field"><input id="subInput" placeholder="add a subreddit, press Enter" autocomplete="off"></div>
+      <p class="help">Fetched as one combined listing, so several subreddits cost a single request.
+        No account needed.</p>
+    </div>
+
+    <div class="sect">
+      <span class="lab">Account access</span>
+      <div class="acct" id="acctReddit"></div>
+      <div class="acct" id="acctGithub"></div>
+      <p class="help">Both are optional — every board works without them. No password is typed here;
+        Reddit opens its own consent screen and hands back a token, stored locally and refreshed
+        automatically. GitHub uses a fine-grained token. Revoke either at any time.</p>
+      <p class="help warn">Anything you summarise from a connected account — including posts only you can
+        see — is sent to the AI provider you picked. Summaries are always manual, never automatic.</p>
+    </div>
+
+    <div class="sfoot">
+      <span class="mono" style="font-size:11px;color:var(--faint);margin-right:auto">
+        refresh every 30 min ·
+        <a id="repoLink" href="#" target="_blank" rel="noopener">source on GitHub</a> ·
+        MIT
+      </span>
+      <button class="btn" id="mCancel">Cancel</button>
+      <button class="btn pri" id="mSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="./main.js"></script>
+</body>
+</html>

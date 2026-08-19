@@ -1,0 +1,19 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        { "header": "origin", "operation": "remove" },
+        { "header": "sec-fetch-site", "operation": "set", "value": "none" },
+        { "header": "sec-fetch-mode", "operation": "set", "value": "navigate" },
+        { "header": "sec-fetch-dest", "operation": "set", "value": "document" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||reddit.com/",
+      "resourceTypes": ["xmlhttprequest"]
+    }
+  }
+]

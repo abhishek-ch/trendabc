@@ -1,0 +1,36 @@
+{
+  "name": "trendabc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "test": "node --test tests/sources.test.mjs tests/extension.test.mjs",
+    "test:sources": "node --test tests/sources.test.mjs",
+    "test:ui": "node --test tests/extension.test.mjs",
+    "load": "echo && echo '  Chrome 137+ ignores --load-extension, so WXT cannot auto-open it.' && echo '  chrome://extensions -> Developer mode -> Load unpacked -> paste:' && echo && node -e \"console.log('   ', require('path').resolve('.output/chrome-mv3-dev'))\" && echo",
+    "shots": "node tests/store-shots.mjs"
+  },
+  "devDependencies": {
+    "linkedom": "^0.18.13",
+    "puppeteer-core": "^25.8.0",
+    "web-ext": "^10.6.0",
+    "wxt": "^0.20.0"
+  },
+  "description": "What is trending across GitHub, Hacker News, Reddit and arXiv, in one browser tab.",
+  "license": "MIT",
+  "author": "Abhishek Choudhary",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abhishek-ch/trendabc.git"
+  },
+  "homepage": "https://github.com/abhishek-ch/trendabc",
+  "bugs": {
+    "url": "https://github.com/abhishek-ch/trendabc/issues"
+  }
+}

@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm build:firefox
+      # The Firefox store gate. Must stay at zero errors.
+      - run: npx web-ext lint --source-dir .output/firefox-mv3
+
+  # The test suites hit live APIs and drive a real Chrome, so they rate limit
+  # and fail from CI IP ranges for reasons that have nothing to do with the
+  # code. Run them, report them, do not block a pull request on them.
+  tests:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:sources

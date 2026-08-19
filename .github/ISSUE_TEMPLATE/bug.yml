@@ -1,0 +1,31 @@
+name: Bug report
+description: Something is broken
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead. A screenshot helps more than a description.
+    validations: { required: true }
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options: [Chrome, Edge, Brave, Firefox, Other]
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes:
+      label: Browser version
+      placeholder: "151.0.7922.138"
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options: [A board, Signal, Archive, Summaries or chat, Settings, Somewhere else]
+  - type: textarea
+    id: message
+    attributes:
+      label: Any message shown
+      description: If a board failed, paste the text in the column. Never paste an API key.

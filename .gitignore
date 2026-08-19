@@ -1,0 +1,11 @@
+node_modules/
+.wxt/
+.output/
+
+# test artefacts
+tests/screenshots/
+
+# OS and editor noise
+.DS_Store
+*.Rhistory
+.Rhistory

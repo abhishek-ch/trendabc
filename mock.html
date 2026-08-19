@@ -1,0 +1,1471 @@
+<title>AI Wire Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap">
+
+<style>
+:root{
+  --bg:#E6E8E3; --surface:#F7F8F4; --surface-2:#EDEFE8; --surface-3:#E1E4DC;
+  --ink:#14181B; --muted:#5C646B; --faint:#8A9299;
+  --line:#CFD4CC; --line-strong:#B0B8AE;
+  --signal:#0E6F63; --signal-ink:#0A5B51; --signal-wash:rgba(14,111,99,.10);
+  --heat:#9A5B08; --danger:#A02C1E;
+  --shadow-panel:-18px 0 48px rgba(20,24,27,.10);
+  --shadow-pop:0 2px 4px rgba(20,24,27,.05),0 16px 40px rgba(20,24,27,.14);
+  --r:3px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1215; --surface:#161B1F; --surface-2:#1B2126; --surface-3:#222A2F;
+    --ink:#E3E7E3; --muted:#929B9C; --faint:#6B7578;
+    --line:#252C31; --line-strong:#3A444A;
+    --signal:#3FBFA9; --signal-ink:#7FDCC9; --signal-wash:rgba(63,191,169,.12);
+    --heat:#D69436; --danger:#E0705C;
+    --shadow-panel:-18px 0 48px rgba(0,0,0,.45);
+    --shadow-pop:0 2px 4px rgba(0,0,0,.3),0 16px 40px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1215; --surface:#161B1F; --surface-2:#1B2126; --surface-3:#222A2F;
+  --ink:#E3E7E3; --muted:#929B9C; --faint:#6B7578;
+  --line:#252C31; --line-strong:#3A444A;
+  --signal:#3FBFA9; --signal-ink:#7FDCC9; --signal-wash:rgba(63,191,169,.12);
+  --heat:#D69436; --danger:#E0705C;
+  --shadow-panel:-18px 0 48px rgba(0,0,0,.45);
+  --shadow-pop:0 2px 4px rgba(0,0,0,.3),0 16px 40px rgba(0,0,0,.5);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none;padding:0}
+a{color:var(--signal-ink)}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:2px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.lab{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:600;color:var(--faint);
+  font-family:"IBM Plex Mono",ui-monospace,monospace}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:40;background:var(--bg);
+  border-bottom:1px solid var(--line);
+}
+.hbar{max-width:1000px;margin:0 auto;padding:0 22px;height:54px;display:flex;align-items:center;gap:18px}
+.mark{display:flex;align-items:baseline;gap:8px;font-weight:700;letter-spacing:-.015em;font-size:15px}
+.mark .dot{width:7px;height:7px;border-radius:50%;background:var(--signal);
+  box-shadow:0 0 0 3px var(--signal-wash);align-self:center}
+.mark small{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--faint);letter-spacing:.06em;font-weight:500}
+.views{display:flex;gap:2px;margin-left:6px}
+.views button{padding:5px 11px;font-size:12.5px;font-weight:500;color:var(--muted);border-radius:var(--r)}
+.views button[aria-selected="true"]{background:var(--surface-3);color:var(--ink);font-weight:600}
+.views button:hover{color:var(--ink)}
+.hspace{flex:1}
+.hstat{display:flex;align-items:center;gap:14px}
+.spend{font-size:11px;color:var(--muted)}
+.spend b{color:var(--ink);font-weight:600}
+.iconbtn{width:30px;height:30px;display:grid;place-items:center;border-radius:var(--r);color:var(--muted)}
+.iconbtn:hover{background:var(--surface-3);color:var(--ink)}
+.iconbtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.syncing .spin{animation:spin 1s linear infinite;transform-origin:50% 50%}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- topic strip ---------- */
+.topics{border-bottom:1px solid var(--line);background:var(--surface)}
+.tinner{max-width:1000px;margin:0 auto;padding:9px 22px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.chip{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;padding:3px 9px;border-radius:100px;
+  border:1px solid var(--line-strong);color:var(--muted);background:transparent;transition:.12s;
+}
+.chip:hover{border-color:var(--signal);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--signal);border-color:var(--signal);color:#fff;font-weight:500}
+:root[data-theme="dark"] .chip[aria-pressed="true"]{color:#0B1113}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#0B1113}}
+.chip.add{border-style:dashed;color:var(--faint)}
+
+
+/* ---------- boards (raw source columns) ---------- */
+body.wide .hbar,body.wide main{max-width:1560px}
+.boards{display:grid;gap:14px;padding:18px 0 0;align-items:start;overflow-x:auto;scrollbar-width:thin}
+.bhead .btns{margin-left:auto;display:flex;align-items:center;gap:2px}
+.bhead .mini{width:22px;height:22px;display:grid;place-items:center;border-radius:2px;color:var(--faint)}
+.bhead .mini:hover{background:var(--surface-3);color:var(--ink)}
+.bhead .mini svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round}
+.bhead .mini.x:hover{color:var(--danger)}
+.bstale{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--faint);white-space:nowrap}
+.board.loading .bscroll{opacity:.35;pointer-events:none;transition:opacity .15s}
+.addwrap{position:relative;margin-left:auto}
+.addmenu{position:absolute;right:0;top:26px;z-index:30;background:var(--surface);
+  border:1px solid var(--line-strong);border-radius:4px;box-shadow:var(--shadow-pop);
+  min-width:230px;padding:5px;display:none}
+.addmenu.on{display:block}
+.addmenu button{display:block;width:100%;text-align:left;padding:7px 9px;border-radius:2px;font-size:13px}
+.addmenu button:hover{background:var(--surface-2)}
+.addmenu button span{display:block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--faint)}
+.addmenu .none{padding:9px;font-size:12px;color:var(--faint)}
+.boardbtn{font-size:12px;padding:3px 9px;border:1px dashed var(--line-strong);border-radius:100px;
+  color:var(--muted)}
+.boardbtn:hover{border-color:var(--signal);color:var(--ink);border-style:solid}
+.board{background:var(--surface);border:1px solid var(--line);border-radius:4px;
+  display:flex;flex-direction:column;max-height:calc(100vh - 168px);min-width:0}
+.board.locked{border-style:dashed}
+.lockedstate{padding:34px 20px;text-align:center;color:var(--muted)}
+.lockedstate h4{margin:0 0 7px;color:var(--ink);font-size:14px}
+.lockedstate p{margin:0 auto 13px;max-width:34ch;font-size:12.5px;line-height:1.5}
+.bhead{display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid var(--line);
+  background:var(--surface-2);border-radius:4px 4px 0 0}
+.bmark{width:19px;height:19px;border-radius:3px;display:grid;place-items:center;flex:none;
+  font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;color:#fff}
+.bhead h3{margin:0;font-size:13px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+.bhead .sel{margin-left:auto;display:flex;gap:4px}
+.bhead select{background:var(--bg);border:1px solid var(--line);border-radius:2px;padding:2px 4px;
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--muted)}
+.bscroll{overflow-y:auto;overscroll-behavior:contain}
+.brow{padding:11px 13px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .1s}
+.brow:last-child{border-bottom:none}
+.brow:hover{background:var(--surface-2)}
+.brow .rt{font-size:14.5px;line-height:1.35;margin:0 0 3px;font-weight:500;letter-spacing:-.005em}
+.brow .rt .own{color:var(--muted);font-weight:400}
+.brow .rt .dom{color:var(--faint);font-size:11.5px;font-weight:400;
+  font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+.brow .rd{margin:0 0 6px;font-size:12.5px;color:var(--muted);line-height:1.45}
+.brow .rm{display:flex;align-items:center;gap:11px;font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.brow .rm .today{margin-left:auto;color:var(--heat);font-weight:500;white-space:nowrap}
+.brow .lang{display:inline-flex;align-items:center;gap:5px}
+.brow .lang i{width:7px;height:7px;border-radius:50%;background:var(--line-strong)}
+.brow .sumdot{color:var(--signal-ink)}
+.clock{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.clock b{color:var(--ink);font-weight:600}
+
+/* ---------- feed ---------- */
+main{max-width:1000px;margin:0 auto;padding:0 22px 120px}
+.stripline{display:flex;align-items:baseline;gap:10px;padding:20px 0 10px}
+.stripline h2{margin:0;font-size:12px;letter-spacing:.11em;text-transform:uppercase;font-weight:600;
+  font-family:"IBM Plex Mono",monospace;color:var(--faint)}
+.stripline .rule{flex:1;height:1px;background:var(--line)}
+.stripline .count{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint)}
+
+.row{
+  display:grid;grid-template-columns:52px 1fr auto;gap:16px;align-items:start;
+  padding:15px 10px 15px 8px;border-bottom:1px solid var(--line);
+  cursor:pointer;margin:0 -10px;border-radius:var(--r);transition:background .1s;
+  animation:rise .34s cubic-bezier(.2,.7,.3,1) backwards;
+}
+@keyframes rise{from{opacity:0;transform:translateY(7px)}}
+.row:hover{background:var(--surface)}
+.row.is-open{background:var(--surface);box-shadow:inset 2px 0 0 var(--signal)}
+.row.is-fresh{animation:flash 1.6s ease-out}
+@keyframes flash{0%{background:var(--signal-wash)}100%{background:transparent}}
+
+.sig{text-align:right;padding-top:1px}
+.sig .n{font-family:"IBM Plex Mono",monospace;font-size:19px;font-weight:500;line-height:1;
+  font-variant-numeric:tabular-nums;color:var(--muted)}
+.sig.hot .n{color:var(--heat);font-weight:600}
+.sig .dots{display:flex;gap:2.5px;justify-content:flex-end;margin-top:6px}
+.sig .dots i{width:4px;height:4px;border-radius:50%;background:var(--line-strong)}
+.sig .dots i.on{background:var(--signal)}
+
+.row h3{
+  margin:0 0 4px;font-family:"Newsreader",Georgia,serif;font-size:19px;line-height:1.28;
+  font-weight:500;letter-spacing:-.005em;text-wrap:balance;
+}
+.row .blurb{margin:0 0 9px;font-size:13.5px;color:var(--muted);line-height:1.5;max-width:62ch}
+.tags{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.src{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;letter-spacing:.03em;
+  padding:2px 6px;border:1px solid var(--line-strong);border-radius:2px;color:var(--muted);
+  display:inline-flex;gap:5px;white-space:nowrap;
+}
+.src b{font-weight:600;color:var(--ink)}
+.src.corr{border-color:var(--signal);color:var(--signal-ink)}
+.rowmeta{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px;padding-top:3px}
+.age{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);white-space:nowrap}
+.savedmark{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--signal-ink);
+  border:1px solid var(--signal);border-radius:2px;padding:1px 5px;letter-spacing:.04em}
+.empty{padding:60px 0;text-align:center;color:var(--faint);font-size:14px}
+
+/* ---------- archive ---------- */
+.searchwrap{position:relative;margin:4px 0 6px}
+.searchwrap input{
+  width:100%;padding:11px 14px 11px 36px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);font-size:14px;
+}
+.searchwrap svg{position:absolute;left:12px;top:12px;width:15px;height:15px;stroke:var(--faint);
+  fill:none;stroke-width:1.7}
+.arc{padding:14px 10px;margin:0 -10px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:var(--r)}
+.arc:hover{background:var(--surface)}
+.arc h3{margin:0 0 3px;font-family:"Newsreader",serif;font-size:17px;font-weight:500}
+.arc p{margin:0;font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden;line-height:1.45}
+.arc .when{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--faint);margin-bottom:5px}
+
+/* ---------- side panel ---------- */
+.scrim{position:fixed;inset:0;background:rgba(10,14,16,.34);opacity:0;pointer-events:none;
+  transition:opacity .22s;z-index:50}
+.scrim.on{opacity:1;pointer-events:auto}
+.panel{
+  position:fixed;top:0;right:0;bottom:0;width:min(468px,100%);background:var(--surface);
+  border-left:1px solid var(--line);box-shadow:var(--shadow-panel);z-index:60;
+  transform:translateX(101%);transition:transform .26s cubic-bezier(.3,.8,.3,1);
+  display:flex;flex-direction:column;
+}
+.panel.on{transform:none}
+.phead{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.phead .lab{margin-bottom:5px}
+.phead h2{margin:0;font-family:"Newsreader",serif;font-size:21px;font-weight:500;line-height:1.25;text-wrap:balance}
+.phead .dom{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);margin-top:6px}
+.pbody{flex:1;overflow-y:auto;padding:16px 18px 22px}
+.pacts{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+.btn{
+  padding:7px 13px;border-radius:var(--r);border:1px solid var(--line-strong);font-size:12.5px;
+  font-weight:500;color:var(--ink);background:var(--surface-2);transition:.12s;display:inline-flex;
+  align-items:center;gap:6px;
+}
+.btn:hover{border-color:var(--line-strong);background:var(--surface-3)}
+.btn.pri{background:var(--signal);border-color:var(--signal);color:#fff;font-weight:600}
+:root[data-theme="dark"] .btn.pri{color:#08110F}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.pri{color:#08110F}}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn .kbd{font-family:"IBM Plex Mono",monospace;font-size:10px;opacity:.65}
+
+.notice{
+  border:1px solid var(--line-strong);border-left:3px solid var(--heat);background:var(--surface-2);
+  padding:13px 15px;border-radius:var(--r);margin-bottom:16px;
+}
+.notice h4{margin:0 0 5px;font-size:13px;font-weight:600}
+.notice p{margin:0 0 10px;font-size:12.5px;color:var(--muted);line-height:1.5}
+
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
+.metrics div{background:var(--surface-2);padding:9px 11px}
+.metrics .v{font-family:"IBM Plex Mono",monospace;font-size:16px;font-weight:500;
+  font-variant-numeric:tabular-nums;margin-top:2px}
+
+.sum{font-family:"Newsreader",Georgia,serif;font-size:15.5px;line-height:1.62;color:var(--ink)}
+.sum p{margin:0 0 12px}
+.sum strong{font-family:"Archivo",sans-serif;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  font-weight:700;color:var(--signal-ink);display:block;margin-bottom:3px}
+.sum ul{margin:0 0 12px;padding-left:18px}
+.sum li{margin-bottom:5px}
+.sum a{font-family:"IBM Plex Mono",monospace;font-size:12.5px;word-break:break-all}
+.cursor{display:inline-block;width:7px;height:15px;background:var(--signal);vertical-align:-2px;
+  animation:blink .9s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.streamnote{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--faint);
+  display:flex;gap:8px;align-items:center;margin-bottom:10px}
+
+.links{border-top:1px solid var(--line);margin-top:18px;padding-top:14px}
+.links ol{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+.links li{display:grid;grid-template-columns:auto 1fr;gap:9px;font-size:13px;align-items:baseline}
+.links .k{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--faint);
+  border:1px solid var(--line);border-radius:2px;padding:1px 4px}
+.links a{text-decoration:none;border-bottom:1px solid var(--line-strong)}
+.links a:hover{border-color:var(--signal)}
+.links .why{display:block;color:var(--muted);font-size:12px;margin-top:1px}
+
+.thread{display:flex;flex-direction:column;gap:12px;margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+.msg{font-size:13.5px;line-height:1.55}
+.msg.u{background:var(--surface-3);border-radius:var(--r);padding:9px 12px;align-self:flex-end;max-width:88%}
+.msg.a{font-family:"Newsreader",serif;font-size:15px;line-height:1.6}
+.suggest{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.suggest button{font-size:12px;padding:5px 10px;border:1px solid var(--line-strong);border-radius:100px;
+  color:var(--muted)}
+.suggest button:hover{color:var(--ink);border-color:var(--signal)}
+.composer{border-top:1px solid var(--line);padding:11px 14px;display:flex;gap:8px;background:var(--surface-2)}
+.composer input{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:9px 12px;font-size:13.5px}
+.composer input::placeholder{color:var(--faint)}
+
+/* ---------- modal ---------- */
+.modal{
+  position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:20px;
+  background:rgba(10,14,16,.42);opacity:0;pointer-events:none;transition:opacity .18s;
+}
+.modal.on{opacity:1;pointer-events:auto}
+.sheet{
+  width:min(560px,100%);max-height:88vh;overflow-y:auto;background:var(--surface);
+  border:1px solid var(--line);border-radius:5px;box-shadow:var(--shadow-pop);
+  transform:translateY(8px) scale(.99);transition:transform .18s;
+}
+.modal.on .sheet{transform:none}
+.shead{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center}
+.shead h2{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+.sect{padding:18px 20px;border-bottom:1px solid var(--line)}
+.sect:last-of-type{border-bottom:none}
+.sect > .lab{display:block;margin-bottom:9px}
+.field{display:flex;gap:8px}
+.field input,.sect textarea,.sect select{
+  width:100%;background:var(--bg);border:1px solid var(--line-strong);border-radius:var(--r);
+  padding:9px 11px;font-size:13px;font-family:"IBM Plex Mono",monospace;
+}
+.sect textarea{resize:vertical;min-height:66px;line-height:1.55}
+.help{font-size:12px;color:var(--muted);margin:9px 0 0;line-height:1.5}
+.help.warn{color:var(--heat)}
+.keyset{display:flex;align-items:center;gap:10px;font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+.keyset .ok{color:var(--signal-ink);font-weight:600}
+.providers{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+.provider{position:relative;border:1px solid var(--line-strong);border-radius:var(--r);padding:9px 10px;
+  background:var(--surface-2);font-size:12.5px;font-weight:600;text-align:left;transition:.12s}
+.provider:hover{border-color:var(--signal)}
+.provider[aria-pressed="true"]{border-color:var(--signal);background:var(--signal-wash)}
+.provider::after{content:"";position:absolute;right:8px;top:8px;width:6px;height:6px;border-radius:50%;
+  background:var(--line-strong)}
+.provider.has-key::after{background:var(--signal)}
+.modelpick{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:center}
+.modelpick select{min-width:0}
+.modelcost{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--signal-ink);
+  white-space:nowrap;font-weight:600}
+.modelhint{font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.5}
+.toggles{display:flex;flex-direction:column;gap:2px}
+.tg{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px}
+.tg input{accent-color:var(--signal);width:15px;height:15px}
+.tg .cnt{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint)}
+.sfoot{padding:14px 20px;display:flex;gap:8px;justify-content:flex-end;align-items:center;
+  position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line)}
+
+
+.acct{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--line)}
+.acct:last-of-type{border-bottom:none}
+.acct .nm{font-size:13px;font-weight:600}
+.acct .st{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);margin-top:2px}
+.acct .st.on{color:var(--signal-ink)}
+.acct .grow{flex:1;min-width:0}
+.subchip{font-family:"IBM Plex Mono",monospace;font-size:11.5px;padding:3px 7px 3px 9px;
+  border-radius:100px;border:1px solid var(--line-strong);color:var(--muted);
+  display:inline-flex;align-items:center;gap:6px}
+.subchip button{color:var(--faint);font-size:13px;line-height:1}
+.subchip button:hover{color:var(--danger)}
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);z-index:90;
+  background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:100px;font-size:13px;
+  font-weight:500;opacity:0;transition:.2s;pointer-events:none;box-shadow:var(--shadow-pop);
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+.footnote{max-width:1000px;margin:0 auto;padding:26px 22px 40px;color:var(--faint);font-size:12px;
+  border-top:1px solid var(--line);line-height:1.6}
+.footnote b{color:var(--muted);font-weight:600}
+
+@media (max-width:760px){
+  .row{grid-template-columns:40px 1fr;gap:12px}
+  .rowmeta{grid-column:2;flex-direction:row;align-items:center;justify-content:flex-start}
+  .metrics{grid-template-columns:1fr 1fr}
+  .providers{grid-template-columns:1fr}
+  .modelpick{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+</style>
+
+<header>
+  <div class="hbar">
+    <div class="mark"><span class="dot"></span>AI Wire Room <small>v0.1</small></div>
+    <div class="views" role="tablist">
+      <button role="tab" aria-selected="true" data-view="boards">Boards</button>
+      <button role="tab" aria-selected="false" data-view="feed">Signal</button>
+      <button role="tab" aria-selected="false" data-view="archive">Archive <span class="mono" id="arcCount">0</span></button>
+    </div>
+    <div class="hspace"></div>
+    <div class="hstat">
+      <span class="clock" id="clock"></span>
+      <span class="spend">today <b id="spend">$0.00</b></span>
+      <span class="mono" id="syncAge" style="font-size:11px;color:var(--faint)">synced 4m ago</span>
+      <button class="iconbtn" id="btnSync" title="Refresh sources">
+        <svg viewBox="0 0 24 24" class="spin"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+      </button>
+      <button class="iconbtn" id="btnTheme" title="Toggle theme">
+        <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <button class="iconbtn" id="btnSettings" title="Settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="topics"><div class="tinner" id="topicStrip"></div></div>
+</header>
+
+<main>
+  <section id="viewBoards">
+    <div class="stripline"><h2>Boards</h2><span class="rule"></span>
+      <span class="count">raw top-of-source &middot; no topic filter</span>
+      <div class="addwrap">
+        <button class="boardbtn" id="addBoardBtn">+ add board</button>
+        <div class="addmenu" id="addMenu"></div>
+      </div>
+    </div>
+    <div class="boards" id="boards"></div>
+  </section>
+
+  <section id="viewFeed" hidden>
+    <div class="stripline">
+      <h2>Ranked stream</h2><span class="rule"></span>
+      <span class="count" id="feedCount"></span>
+    </div>
+    <div id="feed"></div>
+  </section>
+
+  <section id="viewArchive" hidden>
+    <div class="stripline"><h2>Archive</h2><span class="rule"></span>
+      <span class="count" id="arcNote">summaries cached locally &middot; free to reopen</span></div>
+    <div class="searchwrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="arcSearch" placeholder="Search titles, summaries, tags…" autocomplete="off">
+    </div>
+    <div id="archive"></div>
+  </section>
+</main>
+
+<div class="footnote">
+  <b>This is a clickable mock, not the extension.</b> Nothing calls a real API — summaries are canned text
+  replayed token-by-token to show the streaming feel. Try: click a headline &rarr; Summarize &rarr; add a key
+  in Settings (any text works) &rarr; ask a follow-up &rarr; open Archive. The mock uses an in-page drawer;
+  production keeps these wide Boards in the new tab and opens details in the persistent Chrome side panel.
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="phead">
+    <div style="flex:1;min-width:0">
+      <div class="lab" id="pSources">—</div>
+      <h2 id="pTitle">—</h2>
+      <div class="dom" id="pDom">—</div>
+    </div>
+    <button class="iconbtn" id="pClose" title="Close (Esc)">
+      <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="pbody" id="pBody"></div>
+  <form class="composer" id="composer" hidden>
+    <input id="ask" placeholder="Ask about this…" autocomplete="off">
+    <button class="btn pri" type="submit">Send</button>
+  </form>
+</aside>
+
+<div class="modal" id="modal">
+  <div class="sheet" role="dialog" aria-label="Settings">
+    <div class="shead"><h2>Settings</h2><div style="flex:1"></div>
+      <button class="iconbtn" id="mClose"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+
+    <div class="sect">
+      <span class="lab">AI provider</span>
+      <div class="providers" id="providerTabs"></div>
+      <div id="keyRow"></div>
+      <p class="help" id="providerHelp"></p>
+    </div>
+
+    <div class="sect">
+      <span class="lab">Summary &amp; chat model</span>
+      <div class="modelpick">
+        <select id="modelSelect" aria-label="AI model"></select>
+        <span class="modelcost" id="modelEstimate"></span>
+      </div>
+      <p class="modelhint" id="modelHint"></p>
+      <p class="help">Lightweight models are recommended for summarisation. Advanced models remain available,
+        but usually cost more without improving extraction enough to matter.</p>
+    </div>
+
+    <div class="sect">
+      <span class="lab">Topics tracked</span>
+      <div class="field"><input id="topicInput" placeholder="add a topic, press Enter" autocomplete="off"></div>
+      <p class="help">Drives search queries on Hacker News, Reddit, GitHub and X, and filters everything else.</p>
+    </div>
+
+    <div class="sect">
+      <span class="lab">Sources</span>
+      <div class="toggles" id="srcToggles"></div>
+    </div>
+
+    <div class="sect">
+      <span class="lab">RSS feeds</span>
+      <textarea id="feeds">https://simonwillison.net/atom/everything/
+http://export.arxiv.org/rss/cs.AI
+https://huggingface.co/blog/feed.xml
+https://www.anthropic.com/news/rss.xml</textarea>
+      <p class="help">One URL per line. Blogs, arXiv categories, changelogs — anything with a feed.</p>
+    </div>
+
+    <div class="sect">
+      <span class="lab">Subreddits</span>
+      <div id="subChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px"></div>
+      <div class="field"><input id="subInput" placeholder="add a subreddit, press Enter" autocomplete="off"></div>
+      <p class="help">Mock rows are public examples. Production uses Reddit OAuth and approved Data API access;
+        connect Reddit for subscribed and private-community feeds.</p>
+    </div>
+
+    <div class="sect">
+      <span class="lab">Account access</span>
+      <div class="acct" id="acctReddit"></div>
+      <div class="acct" id="acctGithub"></div>
+      <div class="acct" id="acctX"></div>
+      <p class="help">You never type a Reddit or X password here: both open their official OAuth consent flow.
+        GitHub uses a fine-grained token you can revoke at any time.</p>
+      <p class="help warn">While a session is on, anything you summarise from it — including posts only you
+        can see — is sent to your selected AI provider. Summaries are always manual, never automatic.</p>
+    </div>
+
+    <div class="sfoot">
+      <span class="mono" style="font-size:11px;color:var(--faint);margin-right:auto">refresh every 30 min</span>
+      <button class="btn" id="mCancel">Cancel</button>
+      <button class="btn pri" id="mSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- fake corpus ----------
+const S = (k,v)=>({k,v});
+const ITEMS = [
+ {id:'duckdb', score:94, age:'3h', topics:['data','vector db','DuckDB'],
+  title:'DuckDB 1.4 folds vector search and BM25 into the core engine',
+  blurb:'Persistent HNSW indexes land in the database file. Hybrid vector + full-text queries now plan as one operator tree.',
+  dom:'duckdb.org/2026/08/18/duckdb-1-4-0.html',
+  sources:[S('HN','412 pts · term 187'),S('GH','★ 2,140 this week'),S('RDT','r/dataengineering · 380')],
+  links:[
+   {k:'PR',label:'duckdb/duckdb #14882 — persist HNSW to disk',url:'github.com/duckdb/duckdb/pull/14882',why:'The actual change. Read the design comment, not the diff.'},
+   {k:'BENCH',label:'Independent pgvector comparison',url:'gist.github.com/…/duckdb-vs-pgvector',why:'Posted in the HN thread. Contradicts the release-post numbers.'},
+   {k:'DOC',label:'Hybrid search documentation',url:'duckdb.org/docs/extensions/vss',why:'Syntax for combining match_bm25() with vector distance.'}],
+  summary:`**Core claim**
+DuckDB 1.4 moves vector indexing and BM25 full-text search into the core engine. No extension install, no separate index service. Hybrid queries — vector distance combined with \`match_bm25()\` — compile into a single operator tree instead of two scans joined in application code.
+
+**What is actually new**
+Vector indexes have shipped in the \`vss\` extension since 1.1, but they were memory-only and rebuilt from scratch on every restart. 1.4 persists the HNSW graph inside the database file and makes it crash-safe through the normal WAL. That is the part that matters: it turns a single \`.duckdb\` file into a credible RAG store for corpora under roughly 10M chunks, with no server to operate.
+
+**What is overstated**
+The 8× speedup in the release post compares a cold pgvector instance against a warm DuckDB one. The reproduction posted in the HN thread — third link below — puts the honest gap nearer 1.4×, and pgvector still wins on concurrent writes.
+
+**Who should care**
+Anyone running a modest RAG corpus on hardware they already own, and anyone currently paying a managed vector database for under 10M embeddings. Above 50M vectors, or with multiple writers, this changes nothing for you.`},
+
+ {id:'sinks', score:88, age:'9h', topics:['LLM','research'],
+  title:'Attention Sinks Are Not Enough: revisiting long-context degradation',
+  blurb:'Controlled study across 7 open models finds retrieval accuracy collapses at 60% of the advertised window, independent of sink tokens.',
+  dom:'arxiv.org/abs/2608.10442',
+  sources:[S('ARXIV','cs.CL · v1'),S('HN','268 pts · term 94')],
+  links:[
+   {k:'CODE',label:'Evaluation harness and per-model traces',url:'github.com/…/longctx-probe',why:'Runnable. The needle set is harder than NIAH.'},
+   {k:'PRIOR',label:'StreamingLLM (Xiao et al., 2023)',url:'arxiv.org/abs/2309.17453',why:'The attention-sink result this paper argues against.'}],
+  summary:`**Core claim**
+Attention sinks explain why long-context models stay numerically stable, but not why they stay accurate. Across seven open models the authors find retrieval accuracy falls off a cliff at roughly 60% of the advertised context window, whether or not sink tokens are preserved.
+
+**What is actually new**
+Prior long-context evaluations mostly used needle-in-a-haystack, which a model can pass by pattern-matching a single unusual string. This harness requires composing two facts placed far apart, which defeats that shortcut. Under that setup the published context lengths look like marketing numbers rather than working ones.
+
+**What is overstated**
+Only open-weight models were tested. The paper's framing implies the effect is universal; the evidence does not cover any frontier hosted model, and the authors say so only in an appendix.
+
+**Who should care**
+Anyone sizing a RAG chunk budget off a model card. The practical takeaway is to treat 60% of the stated window as the real one and measure it yourself on your own documents.`},
+
+ {id:'vllm', score:81, age:'6h', topics:['inference','LLM'],
+  title:'vLLM adds disaggregated prefill across heterogeneous GPUs',
+  blurb:'Prefill on A100s, decode on cheaper L40S. Reported 2.1× throughput per dollar on long-prompt workloads.',
+  dom:'github.com/vllm-project/vllm/releases/tag/v0.12.0',
+  sources:[S('GH','★ 1,880 this week'),S('RDT','r/LocalLLaMA · 640')],
+  links:[
+   {k:'RFC',label:'Disaggregation design RFC #11204',url:'github.com/vllm-project/vllm/issues/11204',why:'Explains the KV-cache transfer path and its limits.'},
+   {k:'POST',label:'Benchmark writeup with configs',url:'blog.vllm.ai/2026/08/disagg.html',why:'Includes the failure cases at short prompt lengths.'}],
+  summary:null},
+
+ {id:'swillison', score:76, age:'11h', topics:['LLM','agents'],
+  title:'I ran a local 30B model as my only coding assistant for a week',
+  blurb:'Simon Willison logs where a local model held up, where it did not, and what the electricity actually cost.',
+  dom:'simonwillison.net/2026/Aug/17/local-only-week/',
+  sources:[S('RSS','simonwillison.net'),S('HN','341 pts · term 210')],
+  links:[
+   {k:'TOOL',label:'llm-local plugin used throughout',url:'github.com/simonw/llm-local',why:'The harness. Three lines to reproduce his setup.'}],
+  summary:null},
+
+ {id:'iceberg', score:73, age:'14h', topics:['data'],
+  title:'Iceberg v4 draft spec makes deletion vectors mandatory',
+  blurb:'Positional deletes deprecated. Every v4 reader must support DVs, which breaks three of the four major engines today.',
+  dom:'lists.apache.org/thread/iceberg-v4-draft',
+  sources:[S('RSS','apache.org'),S('HN','156 pts · term 88')],
+  links:[
+   {k:'SPEC',label:'v4 draft, deletion-vector section',url:'iceberg.apache.org/spec/v4/#deletion-vectors',why:'Read §4.3. The compatibility table is the important part.'}],
+  summary:null},
+
+ {id:'mcp', score:69, age:'8h', topics:['agents'],
+  title:'MCP registry passes 4,000 servers; audit finds 61% are thin API wrappers',
+  blurb:'A crawl of the public registry categorises what is actually there. Only 14% expose state or long-running work.',
+  dom:'blog.mcpwatch.dev/registry-audit-2026',
+  sources:[S('HN','204 pts · term 156'),S('RDT','r/LocalLLaMA · 210')],
+  links:[
+   {k:'DATA',label:'Raw crawl results (CSV, 4,112 rows)',url:'github.com/…/mcp-registry-audit',why:'Categorisation is hand-labelled; methodology in README.'}],
+  summary:null},
+
+ {id:'polars', score:64, age:'1d', topics:['data'],
+  title:'Polars 1.20 takes the streaming engine out of beta',
+  blurb:'Out-of-core joins and group-bys on datasets larger than RAM, now the default execution path.',
+  dom:'github.com/pola-rs/polars/releases/tag/py-1.20.0',
+  sources:[S('GH','★ 940 this week'),S('RSS','pola.rs')],
+  links:[], summary:null},
+
+ {id:'lance', score:58, age:'1d', topics:['vector db','data'],
+  title:'LanceDB v0.20 adds ACID multi-table transactions',
+  blurb:'Commit across tables without an external coordinator. Aimed at feature stores that keep embeddings and metadata separate.',
+  dom:'github.com/lancedb/lancedb/releases',
+  sources:[S('GH','★ 610 this week')],
+  links:[], summary:null},
+
+ {id:'ragEval', score:55, age:'2d', topics:['RAG','evals'],
+  title:'Your RAG eval is measuring retrieval, not answers',
+  blurb:'Walks through why recall@k correlates weakly with answer quality once the generator is decent.',
+  dom:'eugeneyan.com/writing/rag-eval-trap/',
+  sources:[S('RSS','eugeneyan.com'),S('HN','189 pts · term 71')],
+  links:[], summary:null},
+
+ {id:'qwen', score:52, age:'16h', topics:['LLM','inference'],
+  title:'Qwen3-Next-80B running at 41 tok/s on one 5090',
+  blurb:'Quantisation recipe and kernel flags posted in full. Reproduced by four other commenters.',
+  dom:'reddit.com/r/LocalLLaMA/comments/…',
+  sources:[S('RDT','r/LocalLLaMA · 1,240')],
+  links:[], summary:null},
+
+ {id:'curricula', score:49, age:'2d', topics:['research','LLM'],
+  title:'On the Sample Efficiency of Synthetic Data Curricula',
+  blurb:'Ordering synthetic examples by verified difficulty beats random ordering by 2.3× on token budget to target loss.',
+  dom:'arxiv.org/abs/2608.09117',
+  sources:[S('ARXIV','cs.LG · v2')],
+  links:[], summary:null},
+
+ {id:'cachediag', score:44, age:'2d', topics:['LLM','agents'],
+  title:'Anthropic ships prompt-cache diagnostics',
+  blurb:'A beta endpoint that reports exactly which prefix byte invalidated your cache. Ends the guesswork.',
+  dom:'anthropic.com/news/cache-diagnostics',
+  sources:[S('RSS','anthropic.com')],
+  links:[], summary:null},
+];
+
+const NEW_ITEMS = [
+ {id:'ray', score:79, age:'2m', topics:['inference','data'],
+  title:'Ray 3.0 merges Data and Serve into one scheduler',
+  blurb:'Batch inference jobs and online endpoints share a placement group. Removes the two-cluster pattern.',
+  dom:'github.com/ray-project/ray/releases/tag/ray-3.0.0',
+  sources:[S('GH','★ 1,410 today'),S('HN','97 pts · term 34')], links:[], summary:null},
+ {id:'distill', score:71, age:'5m', topics:['research','LLM'],
+  title:'Distillation Without a Teacher Forward Pass',
+  blurb:'Reuses cached teacher logits from training runs. Cuts distillation compute by 40% with no measured quality loss.',
+  dom:'arxiv.org/abs/2608.11903',
+  sources:[S('ARXIV','cs.LG · v1'),S('RDT','r/MachineLearning · 180')], links:[], summary:null},
+];
+
+const TOPICS = ['LLM','RAG','vector db','data','inference','agents','evals','research'];
+const SOURCES = [
+  {name:'Hacker News', count:4}, {name:'GitHub', count:4}, {name:'Reddit', count:4},
+  {name:'X', count:0, requires:'x'}, {name:'arXiv / HF', count:2},
+  {name:'RSS feeds', count:5}, {name:'Lobsters', count:1},
+];
+const M = (id,label,sum,chat,group,hint)=>({id,label,sum,chat,group,hint});
+const PROVIDERS = {
+  openai:{name:'OpenAI', host:'api.openai.com', placeholder:'sk-proj-…', demo:'sk-openai-demo-1234',
+    keyUrl:'https://platform.openai.com/api-keys', defaults:'gpt-5.6-luna', models:[
+      M('gpt-5.6-luna','GPT-5.6 Luna',0.002,0.001,'recommended','Cost-sensitive · low reasoning · recommended'),
+      M('gpt-5.4-nano','GPT-5.4 nano',0.002,0.001,'recommended','Very fast · simple extraction'),
+      M('gpt-5.6-terra','GPT-5.6 Terra',0.020,0.007,'advanced','More reasoning · rarely needed here'),
+      M('gpt-5.6-sol','GPT-5.6 Sol',0.050,0.017,'advanced','Frontier model · overkill for most summaries'),
+    ]},
+  anthropic:{name:'Anthropic', host:'api.anthropic.com', placeholder:'sk-ant-api03-…', demo:'sk-ant-demo-5678',
+    keyUrl:'https://console.anthropic.com/settings/keys', defaults:'claude-haiku-4-5', models:[
+      M('claude-haiku-4-5','Claude Haiku 4.5',0.009,0.003,'recommended','Fastest Claude tier · recommended'),
+      M('claude-sonnet-5','Claude Sonnet 5',0.028,0.010,'advanced','Stronger synthesis · usually unnecessary'),
+      M('claude-opus-5','Claude Opus 5',0.047,0.016,'advanced','Complex reasoning · overkill for summaries'),
+    ]},
+  openrouter:{name:'OpenRouter', host:'openrouter.ai', placeholder:'sk-or-v1-…', demo:'sk-or-demo-9012',
+    keyUrl:'https://openrouter.ai/settings/keys', defaults:'openrouter/auto', models:[
+      M('openrouter/auto','Auto Router · best available',0.004,0.001,'recommended','Automatic routing · live catalog in the extension'),
+      M('openai/gpt-5.6-luna','OpenAI · GPT-5.6 Luna',0.002,0.001,'recommended','Low cost · direct model choice'),
+      M('anthropic/claude-haiku-4.5','Anthropic · Claude Haiku 4.5',0.009,0.003,'recommended','Fast Claude through OpenRouter'),
+      M('openai/gpt-5.6-sol','OpenAI · GPT-5.6 Sol',0.050,0.017,'advanced','Frontier model · usually unnecessary'),
+      M('anthropic/claude-opus-5','Anthropic · Claude Opus 5',0.047,0.016,'advanced','Complex reasoning · overkill for summaries'),
+    ]},
+};
+
+// ---------- state ----------
+const state = {view:'boards', extra:{}, provider:'anthropic',
+               keys:{openai:null,anthropic:null,openrouter:null},
+               modelByProvider:{openai:'gpt-5.6-luna',anthropic:'claude-haiku-4-5',openrouter:'openrouter/auto'},
+               spend:0, filters:new Set(), items:[...ITEMS], archive:[], open:null, topics:[...TOPICS]};
+const $ = s=>document.querySelector(s);
+const el = (t,c,h)=>{const n=document.createElement(t); if(c)n.className=c; if(h!=null)n.innerHTML=h; return n;};
+const activeProvider = ()=>PROVIDERS[state.provider];
+const activeModel = ()=>activeProvider().models.find(model=>model.id===state.modelByProvider[state.provider]);
+const hasActiveKey = ()=>Boolean(state.keys[state.provider]);
+
+// ---------- render: topics ----------
+function drawTopics(){
+  const w = $('#topicStrip'); w.innerHTML='';
+  w.append(el('span','lab','Topics'));
+  state.topics.forEach(t=>{
+    const b = el('button','chip',t);
+    b.setAttribute('aria-pressed', state.filters.has(t));
+    b.onclick=()=>{
+      state.filters.has(t) ? state.filters.delete(t) : state.filters.add(t);
+      drawTopics(); drawFeed();
+    };
+    w.append(b);
+  });
+  const add = el('button','chip add','+ topic');
+  add.onclick=()=>{ openModal(); setTimeout(()=>$('#topicInput').focus(),220); };
+  w.append(add);
+}
+
+// ---------- render: feed ----------
+function visible(){
+  if(!state.filters.size) return state.items;
+  return state.items.filter(i=>i.topics.some(t=>state.filters.has(t)));
+}
+function drawFeed(){
+  const f = $('#feed'); f.innerHTML='';
+  const list = visible();
+  $('#feedCount').textContent = `${list.length} items · ${state.filters.size?'filtered':'all topics'} · deduped across 5 sources`;
+  if(!list.length){ f.append(el('div','empty','Nothing matches those topics. Unpick a chip.')); return; }
+  list.forEach((it,i)=>{
+    const r = el('article','row'+(state.open===it.id?' is-open':'')+(it.fresh?' is-fresh':''));
+    r.style.animationDelay = Math.min(i,10)*22+'ms';
+    r.tabIndex=0;
+    const dots = it.sources.map(()=>'<i class="on"></i>').concat(
+      Array(Math.max(0,3-it.sources.length)).fill('<i></i>')).join('');
+    const saved = state.archive.some(a=>a.id===it.id);
+    r.innerHTML = `
+      <div class="sig${it.score>=80?' hot':''}"><div class="n">${it.score}</div><div class="dots">${dots}</div></div>
+      <div>
+        <h3>${it.title}</h3>
+        <p class="blurb">${it.blurb}</p>
+        <div class="tags">
+          ${it.sources.map(s=>`<span class="src${it.sources.length>1?' corr':''}"><b>${s.k}</b>${s.v}</span>`).join('')}
+          ${it.sources.length>1?`<span class="src corr">${it.sources.length}× corroborated</span>`:''}
+        </div>
+      </div>
+      <div class="rowmeta">
+        <span class="age">${it.age}</span>
+        ${saved?'<span class="savedmark">summarised</span>':''}
+      </div>`;
+    r.onclick=()=>openItem(it.id);
+    r.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();openItem(it.id);} };
+    f.append(r);
+  });
+}
+
+// ---------- render: archive ----------
+function drawArchive(){
+  const w = $('#archive'); w.innerHTML='';
+  const q = $('#arcSearch').value.trim().toLowerCase();
+  const hits = state.archive.filter(a=>!q || (a.title+a.summary+a.topics.join(' ')).toLowerCase().includes(q));
+  $('#arcCount').textContent = state.archive.length ? state.archive.length : '';
+  if(!state.archive.length){
+    w.append(el('div','empty','No summaries yet. Open a headline and hit Summarise — it lands here.')); return;
+  }
+  if(!hits.length){ w.append(el('div','empty',`Nothing archived matches “${q}”.`)); return; }
+  hits.forEach(a=>{
+    const n = el('article','arc');
+    n.tabIndex=0;
+    n.innerHTML = `<div class="when">${a.when} · ${a.model} · ${a.cost}</div>
+      <h3>${a.title}</h3><p>${a.summary.replace(/\*\*/g,'').replace(/\n/g,' ')}</p>`;
+    n.onclick=()=>{ setView('feed'); openItem(a.id); };
+    w.append(n);
+  });
+}
+
+// ---------- views ----------
+function setView(v){
+  state.view=v;
+  $('#viewBoards').hidden = v!=='boards';
+  $('#viewFeed').hidden = v!=='feed';
+  $('#viewArchive').hidden = v!=='archive';
+  document.body.classList.toggle('wide', v==='boards');
+  document.querySelector('.topics').hidden = v!=='feed';
+  document.querySelectorAll('.views button').forEach(b=>b.setAttribute('aria-selected', b.dataset.view===v));
+  if(v==='archive') drawArchive();
+  if(v==='boards') drawBoards();
+}
+document.querySelectorAll('.views button').forEach(b=> b.onclick=()=>setView(b.dataset.view));
+$('#arcSearch').oninput = drawArchive;
+
+// ---------- markdown-lite ----------
+function md(t){
+  return t.split(/\n\n+/).map(block=>{
+    if(block.trim().startsWith('- '))
+      return '<ul>'+block.split('\n').map(l=>`<li>${inline(l.replace(/^- /,''))}</li>`).join('')+'</ul>';
+    return '<p>'+inline(block).replace(/\n/g,'<br>')+'</p>';
+  }).join('');
+}
+function inline(t){
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+          .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+          .replace(/`(.+?)`/g,'<code class="mono">$1</code>');
+}
+
+// ---------- panel ----------
+function openItem(id){
+  const it = state.extra[id] || [...state.items, ...state.archive.map(a=>a.item)].find(x=>x.id===id);
+  if(!it) return;
+  state.open = id;
+  $('#pSources').textContent = it.sources.map(s=>s.k).join(' + ') + ` · signal ${it.score}`;
+  $('#pTitle').textContent = it.title;
+  $('#pDom').textContent = it.dom;
+  $('#panel').classList.add('on'); $('#panel').setAttribute('aria-hidden','false');
+  $('#scrim').classList.add('on');
+  drawPanel(it);
+  drawFeed();
+}
+function closePanel(){
+  $('#panel').classList.remove('on'); $('#panel').setAttribute('aria-hidden','true');
+  $('#scrim').classList.remove('on'); $('#composer').hidden=true;
+  state.open=null; drawFeed();
+}
+$('#pClose').onclick = closePanel; $('#scrim').onclick = closePanel;
+
+function drawPanel(it){
+  const b = $('#pBody'); b.innerHTML='';
+  const cached = state.archive.find(a=>a.id===it.id);
+
+  const acts = el('div','pacts');
+  const sum = el('button','btn pri', cached ? 'Re-open summary' : 'Summarise');
+  acts.append(sum);
+  const open = el('button','btn','Open original ↗'); acts.append(open);
+  open.onclick=()=>toast('Would open '+it.dom.split('/')[0]);
+  b.append(acts);
+
+  b.append(el('div','metrics',`
+    <div><div class="lab">Signal</div><div class="v">${it.score}</div></div>
+    <div><div class="lab">Sources</div><div class="v">${it.sources.length}</div></div>
+    <div><div class="lab">Age</div><div class="v">${it.age}</div></div>`));
+
+  const out = el('div','sum'); b.append(out);
+
+  if(cached){
+    out.innerHTML = md(cached.summary);
+    b.append(linkBlock(it));
+    b.append(el('div','streamnote',
+      `cached ${cached.when} · ${cached.model} · already paid ${cached.cost} · reopening is free`));
+    showChat(it, cached.thread||[]);
+  }
+  sum.onclick = ()=>{
+    if(cached){ drawPanel(it); return; }
+    if(!hasActiveKey()){ askKey(b, out); return; }
+    runSummary(it, out, b, sum);
+  };
+}
+
+function linkBlock(it){
+  if(!it.links.length) return el('div','links',
+    `<div class="lab">Linked resources</div><p class="help" style="margin-top:8px">
+     No outbound links worth pulling out of this one.</p>`);
+  return el('div','links', `<div class="lab">Linked resources · pulled from page + comments</div>
+    <ol>${it.links.map(l=>`<li><span class="k">${l.k}</span>
+      <span><a href="#" onclick="return false">${l.label}</a>
+      <span class="why">${l.why}</span></span></li>`).join('')}</ol>`);
+}
+
+function askKey(b, out){
+  out.innerHTML='';
+  const model = activeModel();
+  const n = el('div','notice',`<h4>Connect an AI provider</h4>
+    <p>Choose a provider in Settings and save its API key. Requests go directly from your browser;
+    nothing is proxied through our server. The selected lightweight model is estimated at $${model.sum.toFixed(3)} per summary.</p>`);
+  const btn = el('button','btn pri','Open settings');
+  btn.onclick=openModal; n.append(btn);
+  out.append(n);
+}
+
+// ---------- streaming simulation ----------
+function fallbackSummary(it){
+  return `**Core claim**
+${it.blurb} The announcement is doing most of the work here — the change itself is narrower than the headline suggests.
+
+**What is actually new**
+The mechanism was already possible with existing tooling; what changed is that it now ships as a default rather than a configuration flag. That matters for adoption, not capability. ${it.sources.length>1?`It surfaced on ${it.sources.map(s=>s.k).join(' and ')} within the same day, which is usually a sign the release was coordinated rather than discovered.`:'Single-source so far — no independent discussion yet, so treat the numbers as vendor-reported.'}
+
+**What is overstated**
+Every benchmark quoted comes from the authors. No independent reproduction has appeared in the ${it.age} since publication.
+
+**Who should care**
+Worth ten minutes if ${it.topics.slice(0,2).join(' or ')} is already in your stack. Safe to skip otherwise — nothing here forces a migration.`;
+}
+
+let streaming=false;
+function stream(node, text, onDone){
+  streaming=true;
+  const toks = text.match(/\S+\s*/g)||[];
+  let i=0, acc='';
+  const tick=()=>{
+    if(i>=toks.length){ streaming=false; node.innerHTML=md(acc); onDone&&onDone(); return; }
+    acc += toks.slice(i,i+2).join(''); i+=2;
+    node.innerHTML = md(acc)+'<span class="cursor"></span>';
+    document.getElementById('pBody').scrollTop = 1e6;
+    setTimeout(tick, 14+Math.random()*22);
+  };
+  tick();
+}
+
+function runSummary(it, out, b, sumBtn){
+  const provider = activeProvider();
+  const model = activeModel();
+  sumBtn.disabled=true; sumBtn.textContent='Streaming…';
+  out.innerHTML='';
+  const note = el('div','streamnote',
+    `<span>fetching ${it.dom.split('/')[0]}</span><span class="cursor"></span>`);
+  out.append(note);
+  const body = el('div'); out.append(body);
+  setTimeout(()=>{
+    note.innerHTML = `<span>${provider.name} · ${model.label} · ~6.2k in / 640 out · streaming</span>`;
+    stream(body, it.summary || fallbackSummary(it), ()=>{
+      const cost = model.sum;
+      state.spend += cost; $('#spend').textContent = '$'+state.spend.toFixed(2);
+      note.innerHTML = `<span>done · ${provider.name} · ${model.label} · 6.2k in / 640 out · $${cost.toFixed(3)}</span>`;
+      b.append(linkBlock(it));
+      const rec = {id:it.id, item:it, title:it.title, summary: it.summary||fallbackSummary(it),
+        topics:it.topics, when:'just now', model:`${provider.name} · ${model.label}`,
+        cost:'$'+cost.toFixed(3), thread:[]};
+      state.archive.unshift(rec);
+      $('#arcCount').textContent = state.archive.length;
+      sumBtn.disabled=false; sumBtn.textContent='Re-open summary';
+      toast('Saved to archive · reopening is free');
+      drawFeed();
+      showChat(it, rec.thread);
+    });
+  }, 620);
+}
+
+// ---------- chat ----------
+const SUGGEST = ['Is this hype?','What does it replace?','Should I switch?','Summarise the comments'];
+function showChat(it, thread){
+  const b = $('#pBody');
+  let box = b.querySelector('.thread');
+  if(!box){ box = el('div','thread'); b.append(box); }
+  box.innerHTML='';
+  thread.forEach(m=> box.append(el('div','msg '+m.r, m.r==='a'?md(m.t):m.t)));
+  const sg = el('div','suggest');
+  SUGGEST.forEach(q=>{ const s=el('button',null,q); s.onclick=()=>sendAsk(it,thread,q); sg.append(s); });
+  box.append(sg);
+  $('#composer').hidden=false;
+  $('#composer').onsubmit=e=>{ e.preventDefault(); const v=$('#ask').value.trim();
+    if(v){ $('#ask').value=''; sendAsk(it,thread,v);} };
+}
+function answerFor(q, it){
+  if(/hype/i.test(q)) return `Partly. The engineering is real — ${it.sources[0].k} discussion is technical rather than promotional, which is a decent filter. What is inflated is the framing that this replaces a category. It removes one operational component for small deployments and nothing else.\n\nThe tell: every number quoted traces back to one benchmark run by the people shipping it.`;
+  if(/replace|switch/i.test(q)) return `For a corpus you could hold on one machine, it replaces a separate index service and the sync job that kept it current. That is genuinely two fewer things to run.\n\nIt does not replace anything with multiple writers, cross-region replication, or an existing operational team. Switching costs you a migration and buys you a simpler diagram — worth it only if the diagram is the thing hurting you.`;
+  if(/comment/i.test(q)) return `The ${it.sources.length>1?it.sources.map(s=>s.k).join(' and '):it.sources[0].k} threads split three ways.\n\n- **Practitioners** are asking about persistence and crash recovery, and mostly got answers from a maintainer in-thread.\n- **Skeptics** focus on the benchmark methodology. One reproduction was posted and not rebutted.\n- **The rest** is the usual comparison-to-my-favourite-tool noise. Skippable.`;
+  return `Short answer: it depends on whether ${it.topics[0]} is load-bearing for you.\n\nThe change is narrower than the headline — it makes an existing capability the default and adds durability to it. If you already solved this with another component, there is no forcing function here. If you were about to add that component, this removes the need.`;
+}
+function sendAsk(it, thread, q){
+  if(streaming) return;
+  if(!hasActiveKey()){ toast('Connect an AI provider in Settings first'); openModal(); return; }
+  const box = $('#pBody').querySelector('.thread');
+  box.querySelector('.suggest')?.remove();
+  thread.push({r:'u',t:q});
+  box.append(el('div','msg u', q));
+  const a = el('div','msg a'); box.append(a);
+  $('#pBody').scrollTop = $('#pBody').scrollHeight;
+  const text = answerFor(q, it);
+  setTimeout(()=> stream(a, text, ()=>{
+    thread.push({r:'a',t:text});
+    state.spend += activeModel().chat; $('#spend').textContent='$'+state.spend.toFixed(2);
+    const sg = el('div','suggest');
+    SUGGEST.forEach(s=>{ const bn=el('button',null,s); bn.onclick=()=>sendAsk(it,thread,s); sg.append(bn); });
+    box.append(sg);
+  }), 380);
+}
+
+// ---------- settings ----------
+function drawProviderTabs(){
+  const w = $('#providerTabs'); w.innerHTML='';
+  Object.entries(PROVIDERS).forEach(([id,provider])=>{
+    const button = el('button','provider'+(state.keys[id]?' has-key':''),provider.name);
+    button.dataset.provider=id;
+    button.setAttribute('aria-pressed', state.provider===id);
+    button.title = state.keys[id] ? `${provider.name} key saved` : `Add ${provider.name} key`;
+    button.onclick=()=>{ state.provider=id; renderAISettings(); };
+    w.append(button);
+  });
+}
+
+function drawKeyRow(){
+  const w = $('#keyRow'); w.innerHTML='';
+  const provider = activeProvider();
+  const savedKey = state.keys[state.provider];
+  if(savedKey){
+    const r = el('div','keyset',`<span class="ok">✓ ${provider.name} key saved</span>
+      <span style="color:var(--faint)">••••••••••••${savedKey.slice(-4)}</span>`);
+    const rep = el('button','btn','Replace');
+    rep.onclick=()=>{ state.keys[state.provider]=null; renderAISettings(); };
+    r.append(rep); w.append(r);
+  } else {
+    const f = el('div','field');
+    const i = document.createElement('input');
+    i.type='password'; i.placeholder=provider.placeholder; i.id='keyInput'; f.append(i);
+    const b = el('button','btn pri','Save key'); b.id='keySave';
+    b.onclick=()=>{ state.keys[state.provider]=i.value.trim()||provider.demo;
+      renderAISettings(); toast(`${provider.name} key stored locally`); };
+    f.append(b); w.append(f);
+    w.append(el('p','help warn','Mock only — type anything, or leave blank and hit Save to use a placeholder.'));
+  }
+  $('#providerHelp').innerHTML = `Stored in <span class="mono">chrome.storage.local</span> and sent only to
+    <span class="mono">${provider.host}</span>. <a href="${provider.keyUrl}" target="_blank" rel="noopener">Get a ${provider.name} key</a>.`;
+}
+
+function drawModelPicker(){
+  const select = $('#modelSelect'); select.innerHTML='';
+  const provider = activeProvider();
+  const groups = [
+    ['recommended','Recommended · fast & economical'],
+    ['advanced','Advanced · usually unnecessary for summaries'],
+  ];
+  groups.forEach(([id,label])=>{
+    const models = provider.models.filter(model=>model.group===id);
+    if(!models.length) return;
+    const group = document.createElement('optgroup'); group.label=label;
+    models.forEach(model=>{
+      const option = document.createElement('option');
+      option.value=model.id; option.textContent=model.label; group.append(option);
+    });
+    select.append(group);
+  });
+  select.value=state.modelByProvider[state.provider] || provider.defaults;
+  select.onchange=()=>{ state.modelByProvider[state.provider]=select.value; drawModelPicker(); };
+  const model = activeModel();
+  $('#modelEstimate').textContent=`≈ $${model.sum.toFixed(3)} / summary`;
+  $('#modelHint').textContent=`${model.hint}. Estimate uses ~6.2k input and 640 output tokens; follow-ups cost less.`;
+}
+
+function renderAISettings(){
+  drawProviderTabs(); drawKeyRow(); drawModelPicker();
+}
+function drawSrcToggles(){
+  const w=$('#srcToggles'); w.innerHTML='';
+  SOURCES.forEach(source=>{
+    const available = !source.requires || state.session?.[source.requires];
+    const status = available ? `${source.count} items` : 'connect required';
+    const l=el('label','tg',`<input type="checkbox" ${available?'checked':'disabled'}>
+      <span>${source.name}</span><span class="cnt">${status}</span>`);
+    w.append(l);
+  });
+}
+function openModal(){
+  $('#modal .sheet').scrollTop=0;
+  $('#modal').classList.add('on');
+  renderAISettings();
+}
+function closeModal(){ $('#modal').classList.remove('on'); }
+$('#btnSettings').onclick=openModal; $('#mClose').onclick=closeModal; $('#mCancel').onclick=closeModal;
+$('#modal').onclick=e=>{ if(e.target===$('#modal')) closeModal(); };
+$('#mSave').onclick=()=>{ closeModal(); toast('Settings saved'); if(state.open) openItem(state.open); };
+$('#topicInput').onkeydown=e=>{
+  if(e.key==='Enter'){ e.preventDefault(); const v=e.target.value.trim();
+    if(v && !state.topics.includes(v)){ state.topics.push(v); drawTopics(); toast('Tracking “'+v+'”'); }
+    e.target.value=''; }
+};
+
+// ---------- sync ----------
+let synced=false;
+function enabledSourceCount(){
+  return [...document.querySelectorAll('#srcToggles input')]
+    .filter(input=>input.checked && !input.disabled).length;
+}
+$('#btnSync').onclick=()=>{
+  const b=$('#btnSync'); if(b.classList.contains('syncing')) return;
+  b.classList.add('syncing');
+  $('#syncAge').textContent=`syncing ${enabledSourceCount()} enabled sources…`;
+  setTimeout(()=>{
+    b.classList.remove('syncing'); $('#syncAge').textContent='synced just now';
+    if(!synced){ synced=true;
+      NEW_ITEMS.forEach(n=>{ n.fresh=true; state.items.unshift(n); });
+      state.items.sort((a,b)=>b.score-a.score);
+      toast('2 new items · nothing summarised, nothing charged');
+    } else toast('No new items');
+    drawFeed();
+  }, 1300);
+};
+
+// ---------- misc ----------
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'), 2600); }
+$('#btnTheme').onclick=()=>{
+  const cur = document.documentElement.getAttribute('data-theme');
+  const dark = cur ? cur==='dark' : matchMedia('(prefers-color-scheme:dark)').matches;
+  document.documentElement.setAttribute('data-theme', dark?'light':'dark');
+};
+addEventListener('keydown',e=>{
+  if(e.key!=='Escape') return;
+  if($('#modal').classList.contains('on')) closeModal();
+  else if($('#panel').classList.contains('on')) closePanel();
+});
+
+
+// ---------- boards: raw top-of-source, no topic filter ----------
+const LC = {Python:'#3572A5',TypeScript:'#3178c6',Rust:'#dea584',Go:'#00ADD8',
+            'C++':'#f34b7d',Zig:'#ec915c',Mojo:'#ff4c1f',Jupyter:'#DA5B0B'};
+
+const BOARDS = [
+{id:'gh', name:'GitHub Trending', mark:'GH', color:'#1F2328', kind:'repo',
+ controls:[['today','this week','this month'],['all languages','Python','TypeScript','Rust','Go']],
+ rows:[
+  {owner:'ggml-org', name:'llama.cpp', lang:'C++', stars:'92,410', forks:'13,802', today:'3,118',
+   desc:'LLM inference in C/C++. Now with speculative decoding on Metal and a stable server API.'},
+  {owner:'volcengine', name:'OpenViking', lang:'Python', stars:'29,296', forks:'2,303', today:'2,014',
+   desc:'Self-evolving context database for AI agents. Unifies agent memory, knowledge RAG and skills.'},
+  {owner:'ryancodrai', name:'turbovec', lang:'Rust', stars:'8,140', forks:'312', today:'1,806',
+   desc:'Vector search engine with SIMD-first quantisation. Single binary, no index server.'},
+  {owner:'harry0703', name:'MoneyPrinterTurbo', lang:'Python', stars:'108,399', forks:'16,455', today:'1,290',
+   desc:'Generate HD short videos from a topic or keyword with an automated AI workflow.'},
+  {owner:'akitaonrails', name:'ai-memory', lang:'Rust', stars:'2,657', forks:'231', today:'930',
+   desc:'Long-term memory for agent coding CLIs. Handoff between different agent vendors.'},
+  {owner:'unslothai', name:'unsloth', lang:'Python', stars:'44,720', forks:'3,610', today:'844',
+   desc:'Finetune and RL any LLM 2x faster with 70% less VRAM.'},
+  {owner:'mukul975', name:'security-skills', lang:'Python', stars:'29,100', forks:'3,488', today:'726',
+   desc:'817 structured cybersecurity skills for AI agents, mapped to MITRE ATT&CK and NIST CSF 2.0.'},
+  {owner:'chaitanyagiri', name:'munder-difflin', lang:'TypeScript', stars:'1,962', forks:'234', today:'618',
+   desc:'Local multi-agent harness. Runs a planner, a coder and a critic against one repo.'},
+  {owner:'modal-labs', name:'dyno', lang:'Go', stars:'6,410', forks:'288', today:'502',
+   desc:'Sub-second cold starts for LLM inference containers. Snapshot and restore CUDA context.'},
+  {owner:'duckdb', name:'duckdb', lang:'C++', stars:'34,880', forks:'2,410', today:'488',
+   desc:'An in-process analytical database. 1.4 adds persistent vector indexes and BM25.'},
+  {owner:'pola-rs', name:'polars', lang:'Rust', stars:'36,210', forks:'2,190', today:'411',
+   desc:'Dataframes powered by a multithreaded, vectorized query engine.'},
+  {owner:'zml', name:'zml', lang:'Zig', stars:'4,102', forks:'188', today:'365',
+   desc:'High performance AI inference stack built for production. Cross-platform, no Python runtime.'},
+ ]},
+
+{id:'hn', name:'Hacker News', mark:'Y', color:'#FF6600', kind:'story',
+ controls:[['front page','new','show hn','ask hn','best']],
+ rows:[
+  {title:'The Amazon tax', dom:'seths.blog', pts:715, by:'herbertl', age:'7h', cm:455},
+  {title:'Linux 7.3 improves performance when running out of VRAM', dom:'pixelcluster.dev', pts:475, by:'flaburgan', age:'13h', cm:226},
+  {title:'Cursor launches Origin, a GitHub alternative', dom:'cursor.com', pts:360, by:'tomasreimers', age:'8h', cm:289},
+  {title:'Memory prices climb 500% in 12 months', dom:'tomshardware.com', pts:355, by:'haunter', age:'13h', cm:276},
+  {title:'Using the railway network as a flatbed scanner', dom:'philo.gay', pts:353, by:'otherayden', age:'8h', cm:56},
+  {title:'DuckDB 1.4: vector search and full-text land in core', dom:'duckdb.org', pts:412, by:'hannes', age:'3h', cm:187},
+  {title:'Fixing a bricked Framework laptop', dom:'quantum5.ca', pts:301, by:'jp_sc', age:'7h', cm:198},
+  {title:'Beware management consultants', dom:'iceland.co.uk', pts:239, by:'KolmogorovComp', age:'1h', cm:40},
+  {title:'MCP registry passes 4,000 servers; 61% are thin wrappers', dom:'mcpwatch.dev', pts:204, by:'swyx', age:'8h', cm:156},
+  {title:'How does IKEA come up with names for its products?', dom:'ikea.com', pts:152, by:'NaOH', age:'3h', cm:97},
+  {title:"Turbovec – Google's TurboQuant for vector search in Rust", dom:'github.com/ryancodrai', pts:141, by:'fittingopposite', age:'3h', cm:17},
+  {title:'Python Polars cheatsheet (based on our O’Reilly book)', dom:'posit.co', pts:137, by:'jeroenjanssens', age:'7h', cm:26},
+  {title:'2,500-year-old sculpture discovered at UNESCO site in Turkey', dom:'theartnewspaper.com', pts:32, by:'speckx', age:'2h', cm:7},
+  {title:'Launch HN: machine0 (YC S26) – Persistent CPU and GPU VMs from the CLI', dom:'machine0.io', pts:88, by:'dcolgan', age:'4h', cm:41},
+  {title:'Pacing model development in an era of cyber-critical capabilities', dom:'openai.com', pts:34, by:'j4mie', age:'2h', cm:13},
+ ]},
+
+{id:'rd', name:'Reddit', mark:'R', color:'#FF4500', kind:'post',
+ controls:[['r/LocalLLaMA','r/MachineLearning','r/dataengineering'],['top today','hot','top week']],
+ rows:[
+  {title:'Qwen3-Next-80B at 41 tok/s on a single 5090 — full recipe inside', sub:'LocalLLaMA', ups:'1.2k', cm:284, age:'16h', flair:'Tutorial'},
+  {title:'vLLM disaggregated prefill: my numbers on mixed A100 + L40S', sub:'LocalLLaMA', ups:'640', cm:97, age:'6h', flair:'Discussion'},
+  {title:'Anyone else find that 128k context models degrade well before 128k?', sub:'LocalLLaMA', ups:'512', cm:203, age:'11h', flair:'Question'},
+  {title:'I benchmarked 9 embedding models on my own corpus. MTEB rankings did not survive.', sub:'MachineLearning', ups:'488', cm:126, age:'1d', flair:'Research'},
+  {title:'Iceberg v4 will break your reader and nobody is talking about it', sub:'dataengineering', ups:'380', cm:88, age:'14h', flair:'Discussion'},
+  {title:'PSA: your RAG eval is measuring retrieval, not answers', sub:'MachineLearning', ups:'352', cm:71, age:'2d', flair:'Discussion'},
+  {title:'Built a 4x 3090 rig for under $4k — parts list and thermals', sub:'LocalLLaMA', ups:'298', cm:154, age:'20h', flair:'Build'},
+  {title:'Distillation without a teacher forward pass (paper walkthrough)', sub:'MachineLearning', ups:'180', cm:34, age:'5m', flair:'Research'},
+ ]},
+];
+
+
+BOARDS.push(
+{id:'ax', name:'arXiv cs.AI', mark:'AX', color:'#A6231C', kind:'paper',
+ controls:[['cs.AI','cs.CL','cs.LG','stat.ML'],['new','recent']],
+ rows:[
+  {title:'Attention Sinks Are Not Enough: revisiting long-context degradation',
+   who:'Ramesh, Ok, Villalobos +4', id2:'2608.10442v1', age:'9h'},
+  {title:'On the Sample Efficiency of Synthetic Data Curricula',
+   who:'Zhou, Fernández, Nakamura +2', id2:'2608.09117v2', age:'2d'},
+  {title:'Distillation Without a Teacher Forward Pass',
+   who:'Aslan, Petrov, Whitfield', id2:'2608.11903v1', age:'5m'},
+  {title:'Speculative Decoding Beyond Draft Models: a scheduling view',
+   who:'Iyer, Kowalski +6', id2:'2608.11740v1', age:'1d'},
+  {title:'Why Reward Models Disagree: an audit of 14 open preference datasets',
+   who:'Duarte, Mbeki, Sorensen', id2:'2608.10988v1', age:'1d'},
+  {title:'Retrieval Is Not Grounding: separating the two failure modes',
+   who:'Haddad, Lindqvist +3', id2:'2608.10015v3', age:'3d'},
+ ]},
+{id:'lb', name:'Lobsters', mark:'L', color:'#A6704A', kind:'story',
+ controls:[['hottest','newest','active']],
+ rows:[
+  {title:'A tour of the DuckDB vector index on disk', dom:'jvns.ca', pts:96, by:'b3ni', age:'5h', cm:24},
+  {title:'Zig 0.16 release notes', dom:'ziglang.org', pts:141, by:'andrewrk', age:'11h', cm:63},
+  {title:'The case against JSON logs', dom:'brandur.org', pts:88, by:'brandur', age:'8h', cm:71},
+  {title:'Writing a toy BM25 in 200 lines', dom:'bernsteinbear.com', pts:74, by:'tekknolagi', age:'1d', cm:19},
+  {title:'SQLite is not a toy database (2021)', dom:'antonz.org', pts:62, by:'nalgeon', age:'14h', cm:38},
+  {title:'What every systems programmer should know about NUMA', dom:'lwn.net', pts:57, by:'corbet', age:'2d', cm:16},
+ ]},
+{id:'sh', name:'Show HN', mark:'S', color:'#FF6600', kind:'story',
+ controls:[['show hn','launch hn']],
+ rows:[
+  {title:'Show HN: machine0 – persistent CPU and GPU VMs from the CLI', dom:'machine0.io', pts:88, by:'dcolgan', age:'4h', cm:41},
+  {title:'Show HN: I built a local-first RAG store on top of DuckDB', dom:'github.com/…/duckrag', pts:64, by:'mwil', age:'6h', cm:22},
+  {title:'Show HN: Grep for your terminal scrollback, with embeddings', dom:'scrollgrep.dev', pts:52, by:'anna_k', age:'9h', cm:18},
+  {title:'Show HN: A 4KB JS library that renders 1M points at 60fps', dom:'github.com/…/dotpile', pts:117, by:'tdz', age:'12h', cm:44},
+  {title:'Show HN: Open-source alternative to Sentry, single binary', dom:'errbin.dev', pts:39, by:'pjc', age:'2h', cm:11},
+ ]},
+{id:'hf', name:'HF Daily Papers', mark:'HF', color:'#FF9D00', kind:'paper',
+ controls:[['today','this week']],
+ rows:[
+  {title:'Qwen3-Next: sparse attention at 80B without a quality cliff',
+   who:'Qwen Team · ▲ 312 upvotes', id2:'2608.11801', age:'1d'},
+  {title:'A Recipe for Long-Horizon Agent Evaluation',
+   who:'Allen AI · ▲ 188 upvotes', id2:'2608.11455', age:'1d'},
+  {title:'Sparse Autoencoders Do Not Recover Ground-Truth Features',
+   who:'EleutherAI · ▲ 154 upvotes', id2:'2608.10877', age:'2d'},
+ {title:'Tokenizer-Free Language Modelling at Scale',
+   who:'Meta AI · ▲ 141 upvotes', id2:'2608.10620', age:'2d'},
+ ]},
+{id:'rss', name:'RSS feeds', mark:'RSS', color:'#6B6F35', kind:'story',
+ controls:[['all feeds','simonwillison.net','Anthropic','Hugging Face'],['newest']],
+ rows:[
+  {title:'Things we learned shipping tool-use evals', dom:'simonwillison.net', pts:18, by:'RSS', age:'2h', cm:0},
+  {title:'Engineering reliable long-running agents', dom:'anthropic.com', pts:12, by:'RSS', age:'5h', cm:0},
+  {title:'Daily Papers: five efficient inference releases', dom:'huggingface.co', pts:9, by:'RSS', age:'8h', cm:0},
+  {title:'Apache Iceberg 1.9 release notes', dom:'iceberg.apache.org', pts:7, by:'RSS', age:'1d', cm:0},
+ ]},
+{id:'x', name:'X search', mark:'X', color:'#111111', kind:'x', requires:'x',
+ controls:[['AI OR data','#AI','#RAG','#dataengineering'],['recent','top engagement']], rows:[]}
+);
+
+const BOARD = id => BOARDS.find(b=>b.id===id);
+state.openBoards = ['gh','hn','rd'];
+state.subs = ['LocalLLaMA','MachineLearning','dataengineering'];
+state.subSel = 'all tracked subreddits';
+state.session = {reddit:false, github:false, x:false};
+state.boardFilters = {};
+
+function boardRow(b, r, i){
+  const n = el('article','brow'); n.tabIndex=0;
+  const id = b.id+':'+i;
+  const done = state.archive.some(a=>a.id===id) ? '<span class="sumdot">● summarised</span>' : '';
+  if(b.kind==='repo'){
+    n.dataset.language = r.lang;
+    n.innerHTML = `<p class="rt"><span class="own">${r.owner} /</span> ${r.name}</p>
+      <p class="rd">${r.desc}</p>
+      <div class="rm">
+        <span class="lang"><i style="background:${LC[r.lang]||'var(--line-strong)'}"></i>${r.lang}</span>
+        <span>★ ${r.stars}</span><span>⎇ ${r.forks}</span>
+        ${done}<span class="today">+${r.today} today</span></div>`;
+  } else if(b.kind==='story'){
+    n.innerHTML = `<p class="rt">${r.title} <span class="dom">(${r.dom})</span></p>
+      <div class="rm"><span>${r.pts} points</span><span>${r.by}</span><span>${r.age}</span>
+        <span>${r.cm} comments</span>${done}</div>`;
+  } else if(b.kind==='paper'){
+    n.innerHTML = `<p class="rt">${r.title}</p>
+      <div class="rm"><span>${r.who}</span><span>${r.id2}</span><span>${r.age}</span>${done}</div>`;
+  } else {
+    n.innerHTML = `<p class="rt">${r.title}</p>
+      <div class="rm"><span>r/${r.sub}</span><span>▲ ${r.ups}</span><span>${r.cm} comments</span>
+        <span>${r.age}</span>${done}</div>`;
+  }
+  const go = ()=> openBoardItem(b, r, i);
+  n.onclick=go; n.onkeydown=e=>{ if(e.key==='Enter'){e.preventDefault();go();} };
+  return n;
+}
+
+function openBoardItem(b, r, i){
+  const id = b.id+':'+i;
+  let it = state.items.find(x=>x.id===id);
+  if(!it){
+    it = b.kind==='repo'
+      ? {id, title:`${r.owner}/${r.name}`, blurb:r.desc, dom:`github.com/${r.owner}/${r.name}`,
+         score:'—', age:'trending', topics:[r.lang,'github'], links:[], summary:null,
+         sources:[{k:'GH',v:`★ ${r.stars} · +${r.today} today`}]}
+      : b.kind==='paper'
+      ? {id, title:r.title, blurb:`${r.who} · ${r.id2}. Posted ${r.age} ago.`, dom:`arxiv.org/abs/${r.id2}`,
+         score:'—', age:r.age, topics:['research'], links:[], summary:null,
+         sources:[{k:b.mark, v:r.who}]}
+      : b.kind==='story'
+      ? {id, title:r.title, blurb:`Front page of Hacker News · ${r.cm} comments in ${r.age}.`, dom:r.dom,
+         score:r.pts, age:r.age, topics:['hacker news'], links:[], summary:null,
+         sources:[{k:'HN',v:`${r.pts} pts · ${r.cm} comments`}]}
+      : {id, title:r.title, blurb:`Posted to r/${r.sub} · ${r.flair}.`, dom:`reddit.com/r/${r.sub}`,
+         score:r.ups, age:r.age, topics:[r.sub], links:[], summary:null,
+         sources:[{k:'RDT',v:`r/${r.sub} · ▲ ${r.ups}`}]};
+    state.extra[id]=it;
+  }
+  openItem(id);
+}
+
+function drawBoards(){
+  const w = $('#boards'); w.innerHTML='';
+  const n = state.openBoards.length;
+  // one board = full width, two = halves, four = quarters. Grid does the maths.
+  w.style.gridTemplateColumns = n ? `repeat(${n}, minmax(${n>=4?300:340}px, 1fr))` : '1fr';
+  if(!n){
+    w.append(el('div','empty','Every board closed. Add one above.'));
+    drawAddMenu(); return;
+  }
+  state.openBoards.forEach(bid=>{
+    const b = BOARD(bid);
+    const col = el('section','board');
+    const locked = Boolean(b.requires && !state.session[b.requires]);
+    const h = el('div','bhead',
+      `<span class="bmark" style="background:${b.color}">${b.mark}</span><h3>${b.name}</h3>`);
+    const btns = el('div','btns');
+    b.controls.forEach((opts,ci)=>{
+      const isSubs = b.id==='rd' && ci===0;
+      const list = isSubs
+        ? ['all tracked subreddits', ...state.subs.map(x=>'r/'+x), '+ add subreddit…']
+        : opts;
+      const sel = document.createElement('select');
+      list.forEach(o=>{ const op=document.createElement('option'); op.textContent=o; sel.append(op); });
+      const filterKey = `${bid}:${ci}`;
+      sel.value = isSubs ? state.subSel : (state.boardFilters[filterKey] || list[0]);
+      sel.disabled = locked;
+      sel.onchange=()=>{
+        if(sel.value==='+ add subreddit…'){ addSubInline(sel); return; }
+        if(isSubs){ state.subSel = sel.value; drawBoards(); toast('Reddit → '+sel.value); return; }
+        state.boardFilters[filterKey] = sel.value;
+        if(b.id==='gh' && ci===1){
+          col.querySelectorAll('.brow').forEach(row=>{
+            row.hidden = sel.value!=='all languages' && row.dataset.language!==sel.value;
+          });
+          toast(`GitHub Trending → ${sel.value}`); return;
+        }
+        refreshBoard(col, b, `${b.name} → ${sel.value}`);
+      };
+      btns.append(sel);
+    });
+    btns.append(el('span','bstale', b.stale||'30m cache'));
+    const rf = el('button','mini','<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>');
+    rf.title='Refresh this board'; rf.onclick=()=>refreshBoard(col, b, b.name+' refreshed');
+    const cx = el('button','mini x','<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>');
+    cx.title='Close board';
+    cx.onclick=()=>{ state.openBoards = state.openBoards.filter(x=>x!==bid);
+      drawBoards(); toast(`${b.name} closed · ${state.openBoards.length||'no'} board${state.openBoards.length===1?'':'s'} sharing the width`); };
+    btns.append(rf, cx); h.append(btns); col.append(h);
+    const sc = el('div','bscroll');
+    let rows = b.rows.map((r,i)=>[r,i]);
+    if(b.id==='rd' && state.subSel!=='all tracked subreddits')
+      rows = rows.filter(([r])=> 'r/'+r.sub === state.subSel);
+    if(locked){
+      col.classList.add('locked');
+      const gate = el('div','lockedstate',`<h4>Connect X to load this board</h4>
+        <p>Recent search is pay-per-use. You choose the hashtags, accounts, and spending cap before the first request.</p>`);
+      const connect = el('button','btn pri','Connect X');
+      connect.onclick=()=>{ openModal(); setTimeout(()=>$('#acctX').scrollIntoView({block:'center'}),80); };
+      gate.append(connect); sc.append(gate);
+    } else if(!rows.length){
+      const emptyCopy = b.id==='x'
+        ? `No X posts cached for “${state.boardFilters['x:0'] || b.controls[0][0]}” yet.`
+        : `Nothing cached for ${state.subSel} yet.`;
+      sc.append(el('div','empty',
+        `${emptyCopy}<br><span class="mono" style="font-size:11px">Hit ↻ to fetch it.</span>`));
+    } else rows.forEach(([r,i])=>{
+      const row = boardRow(b,r,i);
+      if(b.id==='gh'){
+        const language = state.boardFilters['gh:1'] || 'all languages';
+        row.hidden = language!=='all languages' && r.lang!==language;
+      }
+      sc.append(row);
+    });
+    col.append(sc); w.append(col);
+  });
+  drawAddMenu();
+}
+
+
+// Adding a sub swaps the select for an input in place. No modal, no page change.
+function addSubInline(sel){
+  const inp = document.createElement('input');
+  inp.placeholder='subreddit name'; inp.autocomplete='off';
+  inp.style.cssText='background:var(--bg);border:1px solid var(--signal);border-radius:2px;'+
+    'padding:2px 6px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;width:120px';
+  sel.replaceWith(inp); inp.focus();
+  const done = ok=>{
+    const v = inp.value.trim().replace(/^\/?r\//,'');
+    if(ok && v && !state.subs.includes(v)){
+      state.subs.push(v); state.subSel = 'r/'+v;
+      toast(`Tracking r/${v} · hit ↻ to fetch`);
+    } else if(!ok || !v){ state.subSel = 'all tracked subreddits'; }
+    drawBoards();
+  };
+  inp.onkeydown=e=>{ if(e.key==='Enter'){e.preventDefault();done(true);} if(e.key==='Escape')done(false); };
+  inp.onblur=()=>done(true);
+}
+
+function refreshBoard(col, b, msg){
+  col.classList.add('loading');
+  col.querySelector('.bstale').textContent = 'fetching…';
+  setTimeout(()=>{ col.classList.remove('loading');
+    col.querySelector('.bstale').textContent = 'just now'; b.stale='just now'; toast(msg); }, 750);
+}
+
+function drawAddMenu(){
+  const m = $('#addMenu'); m.innerHTML='';
+  const avail = BOARDS.filter(b=>!state.openBoards.includes(b.id));
+  if(!avail.length){ m.append(el('div','none','All boards are open.')); return; }
+  avail.forEach(b=>{
+    const btn = el('button',null,`${b.name}<span>${b.controls[0].slice(0,3).join(' · ')}</span>`);
+    btn.onclick=()=>{ state.openBoards.push(b.id); m.classList.remove('on'); drawBoards();
+      toast(`${b.name} added · ${state.openBoards.length} columns`); };
+    m.append(btn);
+  });
+}
+$('#addBoardBtn').onclick=e=>{ e.stopPropagation(); $('#addMenu').classList.toggle('on'); };
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.addwrap')) $('#addMenu').classList.remove('on'); });
+
+function tick(){
+  const d = new Date();
+  const t = d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  const dt = d.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'});
+  $('#clock').innerHTML = `<b>${t}</b> · ${dt}`;
+}
+tick(); setInterval(tick, 20000);
+
+
+// ---------- subs + account access in settings ----------
+function drawSubChips(){
+  const w=$('#subChips'); w.innerHTML='';
+  state.subs.forEach(sub=>{
+    const c=el('span','subchip','r/'+sub);
+    const x=el('button',null,'×');
+    x.onclick=()=>{ state.subs=state.subs.filter(v=>v!==sub);
+      if(state.subSel==='r/'+sub) state.subSel='all tracked subreddits';
+      drawSubChips(); drawBoards(); };
+    c.append(x); w.append(c);
+  });
+  if(!state.subs.length) w.append(el('span','help','No subreddits. Reddit board will be empty.'));
+}
+$('#subInput').onkeydown=e=>{
+  if(e.key!=='Enter') return; e.preventDefault();
+  const v=e.target.value.trim().replace(/^\/?r\//,'');
+  if(v && !state.subs.includes(v)){ state.subs.push(v); drawSubChips(); drawBoards(); toast('Tracking r/'+v); }
+  e.target.value='';
+};
+
+const ACCTS = [
+ {k:'reddit', el:'#acctReddit', nm:'Reddit', off:'not connected · public mock rows only',
+  on:'OAuth connected · subscribed feeds available', act:'Connect Reddit',
+  note:'OAuth access granted. The extension never sees your Reddit password.'},
+ {k:'github', el:'#acctGithub', nm:'GitHub', off:'anonymous · 10 searches/min',
+  on:'token saved · 30 searches/min · private repos visible', act:'Add token',
+  note:'A fine-grained personal access token. Revoke it at github.com/settings/tokens.'},
+ {k:'x', el:'#acctX', nm:'X', off:'not connected · board locked · pay-per-use',
+  on:'OAuth connected · search spending cap active', act:'Connect X',
+  note:'OAuth access granted. Recent-search requests are billed by X against your developer account.'},
+];
+function drawAccts(){
+  ACCTS.forEach(a=>{
+    const on = state.session[a.k];
+    const w = $(a.el); w.innerHTML='';
+    w.append(el('div','grow',
+      `<div class="nm">${a.nm}</div><div class="st${on?' on':''}">${on?'✓ '+a.on:a.off}</div>`));
+    const b = el('button','btn'+(on?'':' pri'), on?'Sign out':a.act);
+    b.onclick=()=>{ state.session[a.k]=!on; drawAccts(); drawSrcToggles(); drawBoards();
+      toast(on ? a.nm+' access disconnected' : a.nm+' connected — '+a.note); };
+    w.append(b);
+  });
+}
+drawSubChips(); drawAccts();
+
+drawTopics(); drawFeed(); drawSrcToggles(); setView('boards');
+</script>
