@@ -132,8 +132,25 @@ pnpm zip         # → .output/trendabc-0.1.0-chrome.zip
    Transferring later is painful — do not use a throwaway.
 3. Pay the $5 developer registration fee. One time, covers the account, not
    per-extension.
-4. Fill in your developer account details. **A contact email is mandatory and
-   must be verified**, or you cannot publish.
+4. **Set and verify the publisher contact email.** This is not on the item's
+   pages — it lives on the developer **Account** page, and until it is done every
+   item shows two blocking errors:
+
+   > You must provide a contact email before you can publish any item.
+   > You must verify the publisher's contact email before you can publish any item.
+
+   Fix it once, for the whole account:
+
+   1. In the developer dashboard, open **Account** in the left sidebar
+      (the gear / settings entry, not the item you are editing).
+   2. Under **Publisher contact information**, enter the contact email.
+   3. **Save**, then click **Verify** next to it.
+   4. Google emails a confirmation link. Click it, then reload the item page —
+      both errors disappear.
+
+   This address is **published on your listing**, so use one you are happy to
+   show publicly. It is where users and Google will contact you about the
+   extension; it does not have to be the Google account you signed in with.
 
 ### Step 2 — create the item
 
@@ -150,6 +167,15 @@ pnpm zip         # → .output/trendabc-0.1.0-chrome.zip
 | Description | the block under **Store listing copy** below |
 | Category | **Productivity** |
 | Language | English |
+
+**Additional fields** — all three are optional, but fill the last two. A listing
+with no support link looks abandoned before anyone installs it.
+
+| Field | What to enter |
+|---|---|
+| Official URL | **None.** This dropdown only lists domains you have verified you own, under Account → Verified domains. Skip it unless you own a domain and want it shown as verified. A github.com URL can never appear here — you do not own github.com. |
+| Homepage URL | `https://github.com/abhishek-ch/trendabc` |
+| Support URL | `https://github.com/abhishek-ch/trendabc/issues` |
 
 **Screenshots** — upload all five from `store/screenshots/`, in this order. The
 first is what people see in search results, so it leads with the product:
@@ -219,6 +245,21 @@ Paste the public URL of `PRIVACY.md`.
 - **Submit for review**
 
 Flip to **Public** later from the same tab; that flip needs another short review.
+
+### Step 5b — the submit dialog
+
+Clicking **Submit for review** opens a confirmation with one checkbox:
+
+> ☑ Publish "TrendABC" automatically after it has passed review
+
+Leave it ticked **if visibility is Unlisted** — approval then puts it live at a
+link only you have handed out. Untick it if visibility is Public and you want to
+choose the moment it appears in the store.
+
+The dialog also suggests narrower permissions shorten review. That is aimed at
+`*://*/*`, which is already `optional_host_permissions` and requested on click
+rather than at install. It cannot be narrowed further without dropping article
+summarising, so expect the slower end of the range.
 
 ### Step 6 — after submitting
 
