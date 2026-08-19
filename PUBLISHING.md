@@ -207,9 +207,30 @@ featured. Skip it for v0.1.
 | `unlimitedStorage` | Saved summaries accumulate without bound over time and would otherwise hit the default quota. |
 | `identity` | Optional Reddit sign-in through Reddit's own OAuth consent screen, so the user can read their subscribed and private subreddits. Never invoked unless the user explicitly chooses to connect an account. |
 | `declarativeNetRequestWithHostAccess` | Removes the cross-origin Origin header from requests to reddit.com only, because Reddit's bot filter rejects requests carrying it. The rule is static, declared in reddit-rules.json, and matches no other host. |
-| Host permissions — github.com, hn.algolia.com, reddit.com, lobste.rs, export.arxiv.org, huggingface.co | These are the news sources the extension displays. All access is read-only and the content is public. |
-| Host permissions — api.anthropic.com, api.openai.com, openrouter.ai | The AI providers the user may choose between. Requests are made only with the user's own API key and only when the user clicks summarise or sends a message. |
-| Optional host permission `*://*/*` | Requested at runtime, only when the user asks for a summary of a specific article, so the extension can read that one page's text. Never requested at install time. |
+| **Host permission** (one box only — see below) | The console gives a single box for *all* hosts. It must cover the news sources, the AI providers, and the optional wildcard together. Covering only the news sources is a mismatch against the manifest, and mismatches get rejected. |
+
+**Host permission justification** — paste this whole block into the single box:
+
+```
+The extension reads public listings from the news sources it displays:
+github.com, hn.algolia.com, reddit.com, lobste.rs, export.arxiv.org and
+huggingface.co. That access is read-only and the content is public.
+
+It also needs api.anthropic.com, api.openai.com and openrouter.ai. These are
+the AI providers the user chooses between. Requests are made only with the
+user's own API key, and only when the user clicks summarise or sends a
+message. No key is bundled with the extension and there is no backend server
+of our own.
+
+The broad optional host permission (*://*/*) is never requested at install.
+It is requested at runtime, one origin at a time, only when the user asks for
+a summary of a specific article, so the extension can read that one page's
+text.
+```
+
+**Are you using remote code?** — **No.** True only because the fonts are
+self-hosted in `public/fonts/`. If you ever re-add a `<link>` to Google Fonts or
+any CDN script, this answer becomes a false declaration.
 
 **Data usage** — declare exactly these two, and nothing else:
 
