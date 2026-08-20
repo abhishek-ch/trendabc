@@ -282,6 +282,35 @@ The dialog also suggests narrower permissions shorten review. That is aimed at
 rather than at install. It cannot be narrowed further without dropping article
 summarising, so expect the slower end of the range.
 
+### Shipping an update
+
+Same console, much shorter path. There is no second review queue — updates are
+reviewed like a first submission, though usually faster.
+
+1. **Bump `version` in `package.json`.** A version already uploaded can never be
+   reused, even for a version that was rejected.
+2. Rebuild from clean, so nothing stale is packaged:
+
+   ```bash
+   rm -rf .output .wxt
+   pnpm build && pnpm zip
+   ```
+
+3. **Check the package actually contains what you think it does.** A build made
+   before an edit will happily zip and upload:
+
+   ```bash
+   unzip -p .output/trendabc-*-chrome.zip 'chunks/*.js' | grep -o 'https://github.com/[^"]*'
+   ```
+
+4. Dashboard → the item → **Package** → **Upload new package** → the new zip.
+5. Listing and privacy answers carry over. Re-read them only if the change
+   touched permissions or data handling.
+6. **Submit for review** again.
+
+The published version stays live and installed users keep using it until the new
+one is approved, then Chrome updates them automatically within a few hours.
+
 ### Step 6 — after submitting
 
 - Status shows **Pending review**. Days is normal; the optional `*://*/*`
