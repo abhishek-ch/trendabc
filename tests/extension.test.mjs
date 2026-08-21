@@ -364,7 +364,7 @@ test('hostile titles from a source cannot inject markup', async () => {
   await t.page.evaluate(() => chrome.storage.local.set({
     boards: ['hn'],
     // Keep in step with SCHEMA in lib/store.js.
-    'cache:v2:hn': { at: Date.now(), rows: [{
+    'cache:v3:hn': { at: Date.now(), rows: [{
       kind: 'story', id: 'hn:xss', score: 1, ts: Date.now(),
       title: '<img src=x onerror="window.__pwned=1"> "quoted" &amp; <b>bold</b>',
       url: 'https://example.com/x', by: '<script>window.__pwned=2</script>',
